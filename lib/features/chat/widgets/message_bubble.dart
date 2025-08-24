@@ -624,7 +624,9 @@ class _MessageBubbleState extends State<MessageBubble>
         ],
         
         // Show the diagram preview
-        if (diagramMessage.mermaidCode.isNotEmpty)
+        if (diagramMessage.isStreaming)
+          _ContentGenerationShimmer(featureName: 'Diagram')
+        else if (diagramMessage.mermaidCode.isNotEmpty)
           DiagramPreview(
             mermaidCode: diagramMessage.mermaidCode,
           )
@@ -662,7 +664,9 @@ class _MessageBubbleState extends State<MessageBubble>
         ],
         
         // Show the presentation preview
-        if (presentationMessage.slides.isNotEmpty)
+        if (presentationMessage.isStreaming)
+          _ContentGenerationShimmer(featureName: 'Presentation')
+        else if (presentationMessage.slides.isNotEmpty)
           PresentationPreview(
             slides: presentationMessage.slides,
             title: presentationMessage.prompt,
@@ -881,7 +885,22 @@ class _MessageBubbleState extends State<MessageBubble>
   }
 }
 
+class _ContentGenerationShimmer extends StatelessWidget {
+  final String featureName;
+
+  const _ContentGenerationShimmer({required this.featureName});
+
+  @override
+  Widget build(BuildContext context) {
+    return _ImageGenerationShimmer(featureName: featureName);
+  }
+}
+
 class _ImageGenerationShimmer extends StatefulWidget {
+  final String featureName;
+
+  const _ImageGenerationShimmer({this.featureName = 'Image'});
+
   @override
   _ImageGenerationShimmerState createState() => _ImageGenerationShimmerState();
 }
@@ -969,7 +988,7 @@ class _ImageGenerationShimmerState extends State<_ImageGenerationShimmer>
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Creating Image',
+                      'Creating ${widget.featureName}',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: theme.colorScheme.onSurface,
@@ -1090,23 +1109,6 @@ class _VisionAnalysisShimmerState extends State<_VisionAnalysisShimmer>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.remove_red_eye_outlined,
-                    size: 20,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Analyzing image...',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
               // Simple shimmer bars like image generation
               ...List.generate(3, (index) {
                 return Padding(

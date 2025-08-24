@@ -1079,6 +1079,7 @@ class _ChatPageState extends State<ChatPage> {
     
     final userMessage = Message.user('Create a diagram: $prompt');
     _addMessage(userMessage);
+    ChatHistoryService.instance.saveMessage(userMessage);
     setState(() {
       _isLoading = true;
       // Reset auto-scroll for new message
@@ -1087,15 +1088,10 @@ class _ChatPageState extends State<ChatPage> {
     });
     
     _scrollToBottom();
-    
-    // Show loading dialog
-    _showGenerationLoadingDialog(
-      context: context,
-      title: 'Generating Diagram',
-      subtitle: 'Creating visual representation',
-      icon: Icons.account_tree_outlined,
-      tip: 'AI is designing your diagram',
-    );
+
+    // Add a placeholder message immediately
+    final assistantMessage = DiagramMessage.generating(prompt);
+    _addMessage(assistantMessage);
     
     try {
       // Generate diagram using AI
@@ -1141,25 +1137,26 @@ Generate the Mermaid code now:''';
         mermaidCode: mermaidCode,
       );
       
-      // Close loading dialog
-      if (mounted) Navigator.of(context).pop();
-      
-      _addMessage(diagramMessage);
-      setState(() {
-        _isLoading = false;
-      });
+      // Find and update the placeholder message
+      final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
+      if (index != -1) {
+        _messages[index] = diagramMessage;
+        ChatHistoryService.instance.saveMessage(diagramMessage);
+      }
       
       _scrollToBottom();
-    } catch (e) {
-      // Close loading dialog
-      if (mounted) Navigator.of(context).pop();
-      
-      _addMessage(Message.error(
-        'Sorry, I encountered an error generating the diagram. Please try again.',
-      ));
       setState(() {
         _isLoading = false;
       });
+    } catch (e) {
+      // On error, update the placeholder to show an error
+      final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
+      if (index != -1) {
+        setState(() {
+          _messages[index] = (_messages[index] as DiagramMessage).copyWith(hasError: true);
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -1168,6 +1165,7 @@ Generate the Mermaid code now:''';
 
     final userMessage = Message.user('Create a presentation: $prompt');
     _addMessage(userMessage);
+    ChatHistoryService.instance.saveMessage(userMessage);
     setState(() {
       _isLoading = true;
       _autoScrollEnabled = true;
@@ -1176,8 +1174,9 @@ Generate the Mermaid code now:''';
 
     _scrollToBottom();
 
-    // Show loading dialog with countdown
-    _showPresentationLoadingDialog(context);
+    // Add a placeholder message immediately
+    final assistantMessage = PresentationMessage.generating(prompt);
+    _addMessage(assistantMessage);
 
     try {
       final presentationPrompt = '''Create a comprehensive professional presentation about: $prompt
@@ -1223,61 +1222,29 @@ Generate the complete presentation now:''';
         slides: slides,
       );
 
-      // Close loading dialog
-      if (mounted) Navigator.of(context).pop();
-
-      _addMessage(presentationMessage);
-      setState(() {
-        _isLoading = false;
-      });
+      // Find and update the placeholder message
+      final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
+      if (index != -1) {
+        _messages[index] = presentationMessage;
+        ChatHistoryService.instance.saveMessage(presentationMessage);
+      }
 
       _scrollToBottom();
-    } catch (e) {
-      // Close loading dialog
-      if (mounted) Navigator.of(context).pop();
-      
-      _addMessage(Message.error(
-        'Sorry, I encountered an error generating the presentation. Please try again.',
-      ));
       setState(() {
         _isLoading = false;
       });
+    } catch (e) {
+      // On error, update the placeholder to show an error
+      final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
+      if (index != -1) {
+        setState(() {
+          _messages[index] = (_messages[index] as PresentationMessage).copyWith(hasError: true);
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  void _showPresentationLoadingDialog(BuildContext context) {
-    _showGenerationLoadingDialog(
-      context: context,
-      title: 'Generating Presentation',
-      subtitle: 'Creating your slides',
-      icon: Icons.slideshow_rounded,
-      tip: 'AI is crafting professional slides',
-    );
-  }
-  
-  void _showGenerationLoadingDialog({
-    required BuildContext context,
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required String tip,
-  }) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: _GenerationLoadingWidget(
-            title: title,
-            subtitle: subtitle,
-            icon: icon,
-            tip: tip,
-          ),
-        );
-      },
-    );
-  }
 
   List<PresentationSlide> _parsePresentation(String response) {
     final slides = <PresentationSlide>[];
@@ -1418,15 +1385,11 @@ Generate the complete presentation now:''';
     );
     
     _addMessage(userMessage);
+    ChatHistoryService.instance.saveMessage(userMessage);
     
-    // Show loading dialog
-    _showGenerationLoadingDialog(
-      context: context,
-      title: 'Generating Chart',
-      subtitle: 'Creating data visualization',
-      icon: Icons.bar_chart_outlined,
-      tip: 'AI is analyzing your data',
-    );
+    // Add a placeholder message immediately
+    final assistantMessage = ChartMessage.generating(prompt);
+    _addMessage(assistantMessage);
     
     // Generate chart prompt
     final chartPrompt = '''
@@ -1501,25 +1464,21 @@ Format the response as:
               finalConfig = ChartService.generateSampleChart(prompt);
             }
             
-            // Close loading dialog
-            if (mounted) Navigator.of(context).pop();
-            
             setState(() {
               final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
               if (index != -1) {
-                _messages[index] = (assistantMessage as ChartMessage).copyWith(
+                final updatedMessage = (_messages[index] as ChartMessage).copyWith(
                   chartConfig: finalConfig,
                   isStreaming: false,
                 );
+                _messages[index] = updatedMessage;
+                ChatHistoryService.instance.saveMessage(updatedMessage);
               }
             });
           }
         },
         onError: (error) {
           if (mounted) {
-            // Close loading dialog
-            Navigator.of(context).pop();
-            
             // Generate a sample chart on error
             final sampleConfig = ChartService.generateSampleChart(prompt);
             
@@ -1537,9 +1496,6 @@ Format the response as:
         },
       );
     } catch (e) {
-      // Close loading dialog
-      if (mounted) Navigator.of(context).pop();
-      
       // Generate sample on exception
       final sampleConfig = ChartService.generateSampleChart(prompt);
       
@@ -1569,6 +1525,7 @@ Format the response as:
     );
     
     _addMessage(userMessage);
+    ChatHistoryService.instance.saveMessage(userMessage);
     
     // Generate flashcard prompt
     final flashcardPrompt = '''
@@ -1639,46 +1596,35 @@ Generate 5-10 flashcards covering key concepts.
             setState(() {
               final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
               if (index != -1) {
-                _messages[index] = (assistantMessage as FlashcardMessage).copyWith(
+                final updatedMessage = (_messages[index] as FlashcardMessage).copyWith(
                   flashcards: finalFlashcards,
                   isStreaming: false,
                 );
+                _messages[index] = updatedMessage;
+                ChatHistoryService.instance.saveMessage(updatedMessage);
               }
             });
           }
         },
         onError: (error) {
           if (mounted) {
-            // Generate sample flashcards on error
-            final sampleFlashcards = FlashcardService.generateSampleFlashcards(prompt);
-            
-            setState(() {
-              final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
-              if (index != -1) {
-                _messages[index] = (assistantMessage as FlashcardMessage).copyWith(
-                  flashcards: sampleFlashcards,
-                  isStreaming: false,
-                  hasError: false,
-                );
-              }
-            });
+            final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
+            if (index != -1) {
+              setState(() {
+                _messages[index] = (_messages[index] as FlashcardMessage).copyWith(hasError: true);
+              });
+            }
           }
         },
       );
     } catch (e) {
-      // Generate sample on exception
-      final sampleFlashcards = FlashcardService.generateSampleFlashcards(prompt);
-      
       if (mounted) {
-        setState(() {
-          final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
-          if (index != -1) {
-            _messages[index] = (assistantMessage as FlashcardMessage).copyWith(
-              flashcards: sampleFlashcards,
-              isStreaming: false,
-            );
-          }
-        });
+        final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
+        if (index != -1) {
+          setState(() {
+            _messages[index] = (_messages[index] as FlashcardMessage).copyWith(hasError: true);
+          });
+        }
       }
     }
   }
@@ -1695,6 +1641,7 @@ Generate 5-10 flashcards covering key concepts.
     );
     
     _addMessage(userMessage);
+    ChatHistoryService.instance.saveMessage(userMessage);
     
     // Generate quiz prompt
     final quizPrompt = '''
@@ -1766,46 +1713,35 @@ Generate a comprehensive quiz on the topic. The correctAnswer is the index (0-3)
             setState(() {
               final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
               if (index != -1) {
-                _messages[index] = (assistantMessage as QuizMessage).copyWith(
+                final updatedMessage = (_messages[index] as QuizMessage).copyWith(
                   questions: finalQuestions,
                   isStreaming: false,
                 );
+                _messages[index] = updatedMessage;
+                ChatHistoryService.instance.saveMessage(updatedMessage);
               }
             });
           }
         },
         onError: (error) {
           if (mounted) {
-            // Generate sample quiz on error
-            final sampleQuestions = QuizService.generateSampleQuiz(prompt);
-            
-            setState(() {
-              final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
-              if (index != -1) {
-                _messages[index] = (assistantMessage as QuizMessage).copyWith(
-                  questions: sampleQuestions,
-                  isStreaming: false,
-                  hasError: false,
-                );
-              }
-            });
+            final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
+            if (index != -1) {
+              setState(() {
+                _messages[index] = (_messages[index] as QuizMessage).copyWith(hasError: true);
+              });
+            }
           }
         },
       );
     } catch (e) {
-      // Generate sample on exception
-      final sampleQuestions = QuizService.generateSampleQuiz(prompt);
-      
       if (mounted) {
-        setState(() {
-          final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
-          if (index != -1) {
-            _messages[index] = (assistantMessage as QuizMessage).copyWith(
-              questions: sampleQuestions,
-              isStreaming: false,
-            );
-          }
-        });
+        final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
+        if (index != -1) {
+          setState(() {
+            _messages[index] = (_messages[index] as QuizMessage).copyWith(hasError: true);
+          });
+        }
       }
     }
   }

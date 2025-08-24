@@ -39,6 +39,16 @@ class DiagramMessage extends Message {
     type: MessageType.assistant,
     timestamp: DateTime.now(),
   );
+
+  factory DiagramMessage.generating(String prompt) {
+    return DiagramMessage(
+      id: DateTime.now().millisecondsSinceEpoch.toString() + '_diagram',
+      prompt: prompt,
+      mermaidCode: '',
+      timestamp: DateTime.now(),
+      isStreaming: true,
+    );
+  }
   
   @override
   DiagramMessage copyWith({

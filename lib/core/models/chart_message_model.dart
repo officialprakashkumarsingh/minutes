@@ -18,6 +18,16 @@ class ChartMessage extends Message {
           type: MessageType.assistant,
         );
 
+  factory ChartMessage.generating(String prompt) {
+    return ChartMessage(
+      id: DateTime.now().millisecondsSinceEpoch.toString() + '_chart',
+      prompt: prompt,
+      chartConfig: '',
+      timestamp: DateTime.now(),
+      isStreaming: true,
+    );
+  }
+
   @override
   ChartMessage copyWith({
     String? id,

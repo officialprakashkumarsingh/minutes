@@ -44,6 +44,16 @@ class FlashcardMessage extends Message {
           type: MessageType.assistant,
         );
 
+  factory FlashcardMessage.generating(String prompt) {
+    return FlashcardMessage(
+      id: DateTime.now().millisecondsSinceEpoch.toString() + '_flashcard',
+      prompt: prompt,
+      flashcards: [],
+      timestamp: DateTime.now(),
+      isStreaming: true,
+    );
+  }
+
   @override
   FlashcardMessage copyWith({
     String? id,

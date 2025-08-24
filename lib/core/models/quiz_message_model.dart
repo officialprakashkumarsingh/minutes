@@ -50,6 +50,16 @@ class QuizMessage extends Message {
           type: MessageType.assistant,
         );
 
+  factory QuizMessage.generating(String prompt) {
+    return QuizMessage(
+      id: DateTime.now().millisecondsSinceEpoch.toString() + '_quiz',
+      prompt: prompt,
+      questions: [],
+      timestamp: DateTime.now(),
+      isStreaming: true,
+    );
+  }
+
   @override
   QuizMessage copyWith({
     String? id,

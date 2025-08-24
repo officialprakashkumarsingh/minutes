@@ -39,6 +39,16 @@ class PresentationMessage extends Message {
     type: MessageType.assistant,
     timestamp: DateTime.now(),
   );
+
+  factory PresentationMessage.generating(String prompt) {
+    return PresentationMessage(
+      id: DateTime.now().millisecondsSinceEpoch.toString() + '_presentation',
+      prompt: prompt,
+      slides: [],
+      timestamp: DateTime.now(),
+      isStreaming: true,
+    );
+  }
   
   static String _slidesToMarkdown(List<PresentationSlide> slides) {
     final buffer = StringBuffer();
