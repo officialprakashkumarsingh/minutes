@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -94,111 +95,69 @@ class _MessageBubbleState extends State<MessageBubble>
     );
   }
 
-  Future<void> _exportTextAsImage() async {
-    try {
-      // Show exporting notification
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Preparing conversation export...'),
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.only(bottom: 100, left: 16, right: 16),
-          ),
-        );
-      }
+  bool _isExporting = false;
 
-      // Get the user message and AI model info
+  Future<void> _exportTextAsImage() async {
+    if (_isExporting) return;
+
+    setState(() {
+      _isExporting = true;
+    });
+
+    // Show a loading dialog immediately to provide feedback
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // Yield to allow the loading dialog to render before heavy work
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // Get context data
       final userMessage = widget.userMessage ?? '';
       final aiModel = widget.aiModel ?? 'AI Assistant';
       final timestamp = widget.message.timestamp;
-      
-      // Create a GlobalKey for the export widget
       final exportKey = GlobalKey();
-      
-            // Create a custom widget for export with all context
-      final dialogContext = await showDialog<BuildContext?>(
+
+      // Render the export widget off-screen to capture it
+      // This is the most performance-intensive part
+      final RenderRepaintBoundary boundary = await _captureWidget(
         context: context,
-        barrierColor: Colors.transparent,
-        barrierDismissible: false,
-        builder: (dialogContext) {
-          // Schedule the capture and close after render
-          WidgetsBinding.instance.addPostFrameCallback((_) async {
-            await Future.delayed(const Duration(milliseconds: 200));
-            if (dialogContext.mounted) {
-              Navigator.of(dialogContext).pop(dialogContext);
-            }
-          });
-          
-          return Stack(
-            children: [
-              Positioned(
-                left: -2000,
-                top: 0,
-                child: Material(
-                  child: Container(
-                    width: 1200, // Increased width for better quality
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    child: RepaintBoundary(
-                      key: exportKey,
-                      child: _ExportMessageWidget(
-                        userMessage: userMessage,
-                        aiMessage: widget.message,
-                        aiModel: aiModel,
-                        timestamp: timestamp,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+        builder: (context) => RepaintBoundary(
+          key: exportKey,
+          child: _ExportMessageWidget(
+            userMessage: userMessage,
+            aiMessage: widget.message,
+            aiModel: aiModel,
+            timestamp: timestamp,
+          ),
+        ),
       );
       
-      if (dialogContext == null) {
-        throw Exception('Dialog context is null');
-      }
-      
-      // Wait a bit more to ensure rendering is complete
-      await Future.delayed(const Duration(milliseconds: 100));
+      // Convert boundary to image
+      final image = await boundary.toImage(pixelRatio: 2.5); // Slightly reduced pixelRatio
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final pngBytes = byteData?.buffer.asUint8List();
 
-      // Find and capture the export widget
-      final RenderRepaintBoundary? boundary = 
-          exportKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      
-      if (boundary == null) {
-        // Fallback to original message capture
-        final originalBoundary = _repaintBoundaryKey.currentContext
-            ?.findRenderObject() as RenderRepaintBoundary?;
-        
-        if (originalBoundary == null) {
-          throw Exception('Unable to capture message');
-        }
-        
-        final image = await originalBoundary.toImage(pixelRatio: 3.0);
-        final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-        if (byteData == null) throw Exception('Unable to convert to image');
-        
-        final pngBytes = byteData.buffer.asUint8List();
-        Navigator.of(context).pop();
-        await _shareImage(pngBytes);
-        return;
+      if (pngBytes == null) {
+        throw Exception('Failed to generate image bytes.');
       }
 
-      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      
-      if (byteData == null) {
-        throw Exception('Unable to convert to image');
+      // Dismiss the loading dialog
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
       }
 
-      Uint8List pngBytes = byteData.buffer.asUint8List();
-      Navigator.of(context).pop();
-      
+      // Share the generated image
       await _shareImage(pngBytes);
     } catch (e) {
+      // Ensure dialog is dismissed on error
       if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to export: $e'),
@@ -209,7 +168,59 @@ class _MessageBubbleState extends State<MessageBubble>
           ),
         );
       }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isExporting = false;
+        });
+      }
     }
+  }
+
+  // Helper to render a widget off-screen and return its boundary
+  Future<RenderRepaintBoundary> _captureWidget({
+    required BuildContext context,
+    required WidgetBuilder builder,
+  }) async {
+    final GlobalKey key = GlobalKey();
+
+    final completer = Completer<RenderRepaintBoundary>();
+
+    // Use an overlay to render the widget off-screen without affecting the main UI
+    final overlayState = Overlay.of(context);
+    OverlayEntry? overlayEntry;
+
+    overlayEntry = OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          left: -2000, // Position off-screen
+          top: 0,
+          child: Material(
+            child: Container(
+              width: 1200,
+              color: Theme.of(context).scaffoldBackgroundColor,
+              child: Builder(
+                builder: (context) {
+                  // Capture the boundary after the frame is rendered
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    final boundary = key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+                    if (boundary != null && !completer.isCompleted) {
+                      completer.complete(boundary);
+                      overlayEntry?.remove(); // Clean up the overlay
+                    }
+                  });
+                  return builder(context);
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    overlayState.insert(overlayEntry);
+
+    return completer.future;
   }
   
   Future<void> _shareImage(Uint8List pngBytes) async {
@@ -348,7 +359,7 @@ class _MessageBubbleState extends State<MessageBubble>
                       if (widget.message is ImageMessage) ...[
                         if (widget.onExport != null)
                           _ActionButton(
-                            icon: Icons.download_outlined,
+                            icon: CupertinoIcons.cloud_download,
                             label: 'Export',
                             onPressed: widget.onExport!,
                           ),
@@ -367,7 +378,7 @@ class _MessageBubbleState extends State<MessageBubble>
                         // Copy - always visible for AI messages
                         if (widget.onCopy != null)
                           _ActionButton(
-                            icon: Icons.content_copy_outlined,
+                            icon: CupertinoIcons.doc_on_doc,
                             label: 'Copy',
                             onPressed: widget.onCopy!,
                           ),
@@ -375,7 +386,7 @@ class _MessageBubbleState extends State<MessageBubble>
                         // Read Aloud button
                         const SizedBox(width: 8),
                         _ActionButton(
-                          icon: isPlaying ? Icons.stop_circle_outlined : Icons.volume_up_outlined,
+                          icon: isPlaying ? CupertinoIcons.stop_circle : CupertinoIcons.speaker_2,
                           label: isPlaying ? 'Stop' : 'Read Aloud',
                           onPressed: () {
                             if (isPlaying) {
@@ -390,7 +401,7 @@ class _MessageBubbleState extends State<MessageBubble>
                         if (widget.onRegenerate != null) ...[
                           const SizedBox(width: 8),
                           _ActionButton(
-                            icon: Icons.refresh_outlined,
+                            icon: CupertinoIcons.arrow_2_circlepath,
                             label: 'Regenerate',
                             onPressed: widget.onRegenerate!,
                           ),
@@ -400,9 +411,9 @@ class _MessageBubbleState extends State<MessageBubble>
                         if (widget.onExport != null) ...[
                           const SizedBox(width: 8),
                           _ActionButton(
-                            icon: Icons.image_outlined,
+                            icon: CupertinoIcons.photo,
                             label: 'Export',
-                            onPressed: () => _exportTextAsImage(),
+                            onPressed: _isExporting ? null : _exportTextAsImage,
                           ),
                         ],
                       ],
@@ -1132,29 +1143,21 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(20),
+      color: Colors.transparent,
       child: InkWell(
         onTap: onPressed,
         borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
-              width: 1,
-            ),
-            borderRadius: BorderRadius.circular(20),
-          ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 icon,
-                size: 16,
+                size: 18,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 6),
               Text(
                 label,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -1168,7 +1171,6 @@ class _ActionButton extends StatelessWidget {
       ),
     );
   }
-
 }
 
 class _ExportMessageWidget extends StatelessWidget {
