@@ -1405,14 +1405,7 @@ Format the response as:
     
     // Stream AI response
     String fullResponse = '';
-    final assistantMessage = ChartMessage(
-      id: DateTime.now().millisecondsSinceEpoch.toString() + '_chart',
-      prompt: prompt,
-      chartConfig: '',
-      timestamp: DateTime.now(),
-      isStreaming: true,
-    );
-    
+    final assistantMessage = ChartMessage.generating(prompt);
     _addMessage(assistantMessage);
     
     try {
@@ -1455,17 +1448,17 @@ Format the response as:
               finalConfig = ChartService.generateSampleChart(prompt);
             }
             
-            setState(() {
-              final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
-              if (index != -1) {
-                final updatedMessage = (_messages[index] as ChartMessage).copyWith(
-                  chartConfig: finalConfig,
-                  isStreaming: false,
-                );
+            final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
+            if (index != -1) {
+              final updatedMessage = (_messages[index] as ChartMessage).copyWith(
+                chartConfig: finalConfig,
+                isStreaming: false,
+              );
+              setState(() {
                 _messages[index] = updatedMessage;
-                ChatHistoryService.instance.saveMessage(updatedMessage);
-              }
-            });
+              });
+              ChatHistoryService.instance.saveMessage(updatedMessage);
+            }
           }
         },
         onError: (error) {
