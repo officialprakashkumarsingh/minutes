@@ -436,11 +436,13 @@ class _ChatPageState extends State<ChatPage> {
     return AnimatedList(
       key: _listKey,
       controller: _scrollController,
+      reverse: true,
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       initialItemCount: _messages.length,
       itemBuilder: (context, index, animation) {
-        if (index >= _messages.length) return const SizedBox.shrink();
-        final message = _messages[index];
+        // Since the list is reversed, we access messages from the end.
+        final message = _messages[_messages.length - 1 - index];
         return _buildAnimatedMessage(message, index, animation);
       },
     );
@@ -799,32 +801,40 @@ class _ChatPageState extends State<ChatPage> {
 
   void _addMessage(Message message) {
     if (mounted) {
+      // For a reversed list, we add to the end of the data source
+      // but insert at the beginning of the list (index 0).
       _messages.add(message);
       _listKey.currentState?.insertItem(
-        _messages.length - 1,
+        0,
         duration: const Duration(milliseconds: 400),
       );
     }
   }
 
   Future<void> _regenerateMessage(int messageIndex) async {
+    // This logic is tricky with a reversed list. For now, we'll simplify
+    // by clearing the last response and re-sending.
     if (messageIndex <= 0 || messageIndex >= _messages.length) return;
 
-    // Find the user message before this assistant message
     final userMessage = _messages[messageIndex - 1];
     if (userMessage.type != MessageType.user) return;
 
-    // Remove the current assistant message
-    final removedMessage = _messages.removeAt(messageIndex);
-    _listKey.currentState?.removeItem(
-      messageIndex,
-      (context, animation) => _buildAnimatedMessage(removedMessage, messageIndex, animation),
-      duration: const Duration(milliseconds: 300),
-    );
-    setState(() {});
+    // Remove the assistant message(s) that follow the user message
+    int countToRemove = 0;
+    while (messageIndex < _messages.length && _messages[messageIndex].type == MessageType.assistant) {
+      final removedMessage = _messages.removeAt(messageIndex);
+      _listKey.currentState?.removeItem(
+        _messages.length - messageIndex, // Adjust index for reversed list
+        (context, animation) => _buildAnimatedMessage(removedMessage, 0, animation),
+        duration: const Duration(milliseconds: 300),
+      );
+      countToRemove++;
+    }
 
-    // Regenerate the response
-    await _handleSendMessage(userMessage.content);
+    if (countToRemove > 0) {
+      setState(() {});
+      await _handleSendMessage(userMessage.content);
+    }
   }
 
   void _copyMessage(Message message) {
@@ -949,7 +959,7 @@ class _ChatPageState extends State<ChatPage> {
       if (analyzingIndex != -1) {
         final removedMessage = _messages.removeAt(analyzingIndex);
         _listKey.currentState?.removeItem(
-          analyzingIndex,
+          _messages.length - 1 - analyzingIndex, // Adjust index for reversed list
           (context, animation) => _buildAnimatedMessage(removedMessage, analyzingIndex, animation),
           duration: const Duration(milliseconds: 300),
         );
@@ -981,7 +991,7 @@ class _ChatPageState extends State<ChatPage> {
       if (analyzingIndex != -1) {
         final removedMessage = _messages.removeAt(analyzingIndex);
         _listKey.currentState?.removeItem(
-          analyzingIndex,
+          _messages.length - 1 - analyzingIndex, // Adjust index for reversed list
           (context, animation) => _buildAnimatedMessage(removedMessage, analyzingIndex, animation),
           duration: const Duration(milliseconds: 300),
         );
@@ -1328,7 +1338,7 @@ Generate the complete presentation now:''';
     if (slides.isEmpty) {
       // Try to create slides from paragraphs
       final paragraphs = response.split('\n\n');
-      for (int i = 0; i < paragraphs.length && i < 10; i++) {
+      for (int i = 0; i < paragraphs.length; i++) {
         final para = paragraphs[i].trim();
         if (para.isNotEmpty) {
           slides.add(PresentationSlide(
@@ -1703,7 +1713,7 @@ Format as JSON array:
   }
 ]
 
-Generate 5-10 questions. The correctAnswer is the index (0-3) of the correct option.
+Generate a comprehensive quiz on the topic. The correctAnswer is the index (0-3) of the correct option.
 ''';
     
     // Stream AI response

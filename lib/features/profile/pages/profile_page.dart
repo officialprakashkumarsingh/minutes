@@ -95,7 +95,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
                           user?.name.isNotEmpty == true 
                               ? user!.name[0].toUpperCase() 
                               : 'U',
-                          style: TextStyle(
+                          style: GoogleFonts.inter(
                             fontSize: 22,
                             fontWeight: FontWeight.w600,
                             color: theme.colorScheme.primary,
@@ -340,11 +340,9 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
                 ),
               ),
               Icon(
-                isLocked ? CupertinoIcons.lock : CupertinoIcons.right_chevron,
-                color: isLocked 
-                    ? theme.colorScheme.primary.withOpacity(0.6)
-                    : theme.colorScheme.onSurface.withOpacity(0.3),
-                size: isLocked ? 20 : 24,
+                CupertinoIcons.right_chevron,
+                color: theme.colorScheme.onSurface.withOpacity(0.3),
+                size: 24,
               ),
             ],
           ),
@@ -620,17 +618,6 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
         ),
         child: Column(
           children: [
-            // Handle
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            
             // Title
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1031,17 +1018,7 @@ class _ImageModelSelectorSheet extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Handle
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          
+          const SizedBox(height: 12),
           // Header
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1290,17 +1267,7 @@ class _AboutBottomSheetState extends State<_AboutBottomSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle bar
-          Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.onSurface.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          
+          const SizedBox(height: 12),
           // Content
           Padding(
             padding: const EdgeInsets.all(24),

@@ -59,17 +59,7 @@ class _MessageModeSelectorState extends State<MessageModeSelector>
         opacity: _fadeAnimation,
         child: Column(
           children: [
-            // Handle
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            
+            const SizedBox(height: 12),
             // Header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
