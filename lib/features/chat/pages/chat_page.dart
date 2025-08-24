@@ -1473,7 +1473,7 @@ Format the response as:
             final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
             if (index != -1) {
               setState(() {
-                _messages[index] = (_messages[index] as ChartMessage).copyWith(hasError: true);
+                _messages[index] = (_messages[index] as ChartMessage).copyWith(hasError: true, isStreaming: false);
               });
             }
           }
@@ -1484,7 +1484,7 @@ Format the response as:
         final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
         if (index != -1) {
           setState(() {
-            _messages[index] = (_messages[index] as ChartMessage).copyWith(hasError: true);
+            _messages[index] = (_messages[index] as ChartMessage).copyWith(hasError: true, isStreaming: false);
           });
         }
       }
@@ -1589,7 +1589,7 @@ Generate 5-10 flashcards covering key concepts.
             final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
             if (index != -1) {
               setState(() {
-                _messages[index] = (_messages[index] as FlashcardMessage).copyWith(hasError: true);
+                _messages[index] = (_messages[index] as FlashcardMessage).copyWith(hasError: true, isStreaming: false);
               });
             }
           }
@@ -1600,7 +1600,7 @@ Generate 5-10 flashcards covering key concepts.
         final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
         if (index != -1) {
           setState(() {
-            _messages[index] = (_messages[index] as FlashcardMessage).copyWith(hasError: true);
+            _messages[index] = (_messages[index] as FlashcardMessage).copyWith(hasError: true, isStreaming: false);
           });
         }
       }
@@ -1706,7 +1706,7 @@ Generate a comprehensive quiz on the topic. The correctAnswer is the index (0-3)
             final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
             if (index != -1) {
               setState(() {
-                _messages[index] = (_messages[index] as QuizMessage).copyWith(hasError: true);
+                _messages[index] = (_messages[index] as QuizMessage).copyWith(hasError: true, isStreaming: false);
               });
             }
           }
@@ -1717,7 +1717,7 @@ Generate a comprehensive quiz on the topic. The correctAnswer is the index (0-3)
         final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
         if (index != -1) {
           setState(() {
-            _messages[index] = (_messages[index] as QuizMessage).copyWith(hasError: true);
+            _messages[index] = (_messages[index] as QuizMessage).copyWith(hasError: true, isStreaming: false);
           });
         }
       }
