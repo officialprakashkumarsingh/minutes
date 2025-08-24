@@ -46,6 +46,7 @@ class _ChatPageState extends State<ChatPage> {
   final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
   
   bool _isLoading = false;
+  bool _isAgentMode = false;
   bool _showTemplates = false;
   bool _showScrollToBottom = false;
   bool _userIsScrolling = false;
@@ -196,7 +197,13 @@ class _ChatPageState extends State<ChatPage> {
                 });
               },
               isLoading: _isLoading,
+              isAgentMode: _isAgentMode,
               enabled: modelService.selectedModel.isNotEmpty && !modelService.isLoading,
+              onAgentModeToggle: (enabled) {
+                setState(() {
+                  _isAgentMode = enabled;
+                });
+              },
             ),
               ],
             ),
@@ -417,18 +424,13 @@ class _ChatPageState extends State<ChatPage> {
 
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
-      // Use jumpTo for instant scrolling during streaming for better performance
-      if (_isLoading) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-      } else {
-        // Use smooth animation when not streaming
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-        );
-        HapticFeedback.lightImpact();
-      }
+      // For a reversed list, the bottom is at offset 0.0
+      _scrollController.animateTo(
+        0.0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+      HapticFeedback.lightImpact();
     }
   }
 
@@ -699,12 +701,22 @@ class _ChatPageState extends State<ChatPage> {
     int modelIndex,
   ) async {
     try {
+      String systemPrompt = MessageModeService.instance.effectiveSystemPrompt;
+      if (_isAgentMode) {
+        final agentMode = MessageModeService.instance.modes.firstWhere((m) => m.id == 'agent');
+        systemPrompt = agentMode.systemPrompt;
+        // Reset agent mode after use
+        setState(() {
+          _isAgentMode = false;
+        });
+      }
+
       print('Starting response for model: $model at index: $messageIndex');
       final stream = await ApiService.sendMessage(
         message: content,
         model: model,
         conversationHistory: history,
-        systemPrompt: MessageModeService.instance.effectiveSystemPrompt,
+        systemPrompt: systemPrompt,
       );
 
       String accumulatedContent = '';
@@ -742,8 +754,8 @@ class _ChatPageState extends State<ChatPage> {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             // Only auto-scroll if user hasn't manually scrolled away
             if (_autoScrollEnabled && _scrollController.hasClients && !_userIsScrolling) {
-              // Jump to bottom instantly during streaming for ultra smooth experience
-              _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+              // Jump to bottom (0.0) instantly during streaming for ultra smooth experience
+              _scrollController.jumpTo(0.0);
             }
           });
         }

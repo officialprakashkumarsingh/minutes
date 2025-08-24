@@ -33,17 +33,7 @@ class _ModelSelectorBottomSheetState extends State<ModelSelectorBottomSheet> {
       ),
       child: Column(
         children: [
-          // Handle
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          
+          const SizedBox(height: 12),
           // Title
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
@@ -29,6 +30,8 @@ class ChatInput extends StatefulWidget {
   final String selectedModel;
   final bool isLoading;
   final bool enabled;
+  final bool isAgentMode;
+  final Function(bool) onAgentModeToggle;
 
   const ChatInput({
     super.key,
@@ -47,6 +50,8 @@ class ChatInput extends StatefulWidget {
     this.selectedModel = '',
     this.isLoading = false,
     this.enabled = true,
+    this.isAgentMode = false,
+    required this.onAgentModeToggle,
   });
 
   @override
@@ -297,7 +302,9 @@ class _ChatInputState extends State<ChatInput> with TickerProviderStateMixin {
                                                   ? 'What topic for flashcards?'
                                                   : _quizGenerationMode
                                                       ? 'What topic for the quiz?'
-                                                      : 'Type your message...')
+                      : (widget.isAgentMode
+                          ? 'Describe the task for the agent...'
+                          : 'Type your message...'))
                           : 'Select a model to start chatting',
                       hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
@@ -587,8 +594,23 @@ class _ChatInputState extends State<ChatInput> with TickerProviderStateMixin {
               _presentationGenerationMode = false;
               _chartGenerationMode = false;
               _flashcardGenerationMode = false;
+              widget.onAgentModeToggle(false);
             }
           });
+          Navigator.pop(context);
+        },
+        onAgentModeToggle: (enabled) {
+          widget.onAgentModeToggle(enabled);
+          if (enabled) {
+            setState(() {
+              _imageGenerationMode = false;
+              _diagramGenerationMode = false;
+              _presentationGenerationMode = false;
+              _chartGenerationMode = false;
+              _flashcardGenerationMode = false;
+              _quizGenerationMode = false;
+            });
+          }
           Navigator.pop(context);
         },
       ),
@@ -846,6 +868,8 @@ class _ExtensionsBottomSheet extends StatelessWidget {
   final Function(bool) onFlashcardToggle;
   final Function(bool) onQuizToggle;
   final VoidCallback onEnhancePrompt;
+  final Function(bool) onAgentModeToggle;
+  final bool isAgentMode;
 
   const _ExtensionsBottomSheet({
     required this.imageGenerationMode,
@@ -863,6 +887,8 @@ class _ExtensionsBottomSheet extends StatelessWidget {
     required this.onFlashcardToggle,
     required this.onQuizToggle,
     required this.onEnhancePrompt,
+    required this.onAgentModeToggle,
+    required this.isAgentMode,
   });
 
   @override
@@ -883,17 +909,7 @@ class _ExtensionsBottomSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle bar
-          Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          
+          const SizedBox(height: 12),
           // Options in grid layout
           Padding(
             padding: const EdgeInsets.all(20),
@@ -904,7 +920,7 @@ class _ExtensionsBottomSheet extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _CompactExtensionTile(
-                        icon: Icons.image_outlined,
+                        icon: CupertinoIcons.photo,
                         title: 'Analyze Image',
                         onTap: onImageUpload,
                       ),
@@ -912,7 +928,7 @@ class _ExtensionsBottomSheet extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _CompactExtensionTile(
-                        icon: Icons.folder_open_outlined,
+                        icon: CupertinoIcons.folder,
                         title: 'Upload File',
                         onTap: onPdfUpload,
                       ),
@@ -927,7 +943,7 @@ class _ExtensionsBottomSheet extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _CompactExtensionTile(
-                        icon: Icons.auto_fix_high,
+                        icon: CupertinoIcons.wand_stars_inverse,
                         title: 'Enhance Prompt',
                         onTap: onEnhancePrompt,
                       ),
@@ -935,7 +951,7 @@ class _ExtensionsBottomSheet extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: _ExtensionTile(
-                        icon: Icons.auto_awesome_outlined,
+                        icon: CupertinoIcons.wand_stars,
                         title: 'Generate Image',
                         subtitle: '',
                         isToggled: imageGenerationMode,
@@ -945,7 +961,7 @@ class _ExtensionsBottomSheet extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: _ExtensionTile(
-                        icon: Icons.account_tree_outlined,
+                        icon: CupertinoIcons.graph_square,
                         title: 'Diagram',
                         subtitle: '',
                         isToggled: diagramGenerationMode,
@@ -962,7 +978,7 @@ class _ExtensionsBottomSheet extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _ExtensionTile(
-                        icon: Icons.bar_chart_outlined,
+                        icon: CupertinoIcons.chart_bar_alt_fill,
                         title: 'Chart',
                         subtitle: '',
                         isToggled: chartGenerationMode,
@@ -972,7 +988,7 @@ class _ExtensionsBottomSheet extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: _ExtensionTile(
-                        icon: Icons.slideshow_outlined,
+                        icon: CupertinoIcons.rectangle_on_rectangle_angled,
                         title: 'Slides',
                         subtitle: '',
                         isToggled: presentationGenerationMode,
@@ -982,7 +998,7 @@ class _ExtensionsBottomSheet extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: _ExtensionTile(
-                        icon: Icons.style_outlined,
+                        icon: CupertinoIcons.square_on_square,
                         title: 'Flashcards',
                         subtitle: '',
                         isToggled: flashcardGenerationMode,
@@ -999,7 +1015,7 @@ class _ExtensionsBottomSheet extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _ExtensionTile(
-                        icon: Icons.quiz_outlined,
+                        icon: CupertinoIcons.question_circle,
                         title: 'Quiz',
                         subtitle: '',
                         isToggled: quizGenerationMode,
@@ -1007,7 +1023,15 @@ class _ExtensionsBottomSheet extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Expanded(child: Container()), // Empty space for alignment
+                    Expanded(
+                      child: _ExtensionTile(
+                        icon: CupertinoIcons.rocket_fill,
+                        title: 'Agent',
+                        subtitle: '',
+                        isToggled: isAgentMode,
+                        onTap: () => onAgentModeToggle(!isAgentMode),
+                      ),
+                    ),
                     const SizedBox(width: 10),
                     Expanded(child: Container()), // Empty space for alignment
                   ],
@@ -1160,24 +1184,14 @@ class _ImageSourceSelector extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle bar
-          Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          
+          const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
                 // Camera option
                 _ExtensionTile(
-                  icon: Icons.camera_alt_outlined,
+                  icon: CupertinoIcons.camera,
                   title: 'Take Photo',
                   subtitle: 'Capture image with camera',
                   iconSize: 20,
@@ -1188,7 +1202,7 @@ class _ImageSourceSelector extends StatelessWidget {
                 
                 // Gallery option
                 _ExtensionTile(
-                  icon: Icons.photo_library_outlined,
+                  icon: CupertinoIcons.photo_on_rectangle,
                   title: 'Choose from Gallery',
                   subtitle: 'Select image from your photos',
                   iconSize: 20,
