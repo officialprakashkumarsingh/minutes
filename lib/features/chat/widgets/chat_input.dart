@@ -336,7 +336,7 @@ class _ChatInputState extends State<ChatInput> with TickerProviderStateMixin {
                           width: 48,
                           height: 48,
                           child: Icon(
-                            speechService.isListening ? Icons.mic : Icons.mic_none,
+                            speechService.isListening ? CupertinoIcons.mic_fill : CupertinoIcons.mic,
                             color: speechService.isListening
                                 ? Theme.of(context).colorScheme.primary
                                 : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),

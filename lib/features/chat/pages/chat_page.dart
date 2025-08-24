@@ -949,57 +949,60 @@ class _ChatPageState extends State<ChatPage> {
         model: bestVisionModel,
       );
 
-      // Remove analyzing indicator and add actual response
+      // Find the analyzing message to update it in place
       final analyzingIndex = _messages.indexWhere((m) => m.id == analyzingMessage.id);
-      if (analyzingIndex != -1) {
-        final removedMessage = _messages.removeAt(analyzingIndex);
-        _listKey.currentState?.removeItem(
-          _messages.length - 1 - analyzingIndex, // Adjust index for reversed list
-          (context, animation) => _buildAnimatedMessage(removedMessage, analyzingIndex, animation),
-          duration: const Duration(milliseconds: 300),
-        );
-      }
+      if (analyzingIndex == -1) return; // Should not happen
 
-      // Add AI response placeholder
-      final aiMessage = Message.assistant('');
-      _addMessage(aiMessage);
-
-      final messageIndex = _messages.length - 1;
+      final messageIndex = analyzingIndex;
       String fullResponse = '';
       
       await for (final chunk in stream) {
         if (mounted) {
           fullResponse += chunk;
           setState(() {
-            _messages[messageIndex] = Message.assistant(fullResponse);
+            // Update the message in-place
+            final currentMessage = _messages[messageIndex];
+            if (currentMessage is VisionAnalysisMessage) {
+              _messages[messageIndex] = currentMessage.copyWith(
+                content: fullResponse,
+                isStreaming: true,
+              );
+            }
           });
           _scrollToBottom();
         }
       }
 
-      setState(() {
-        _isLoading = false;
-      });
-    } catch (e) {
-      // Remove analyzing indicator if still present
-      final analyzingIndex = _messages.indexWhere((m) => m.id == analyzingMessage.id);
-      if (analyzingIndex != -1) {
-        final removedMessage = _messages.removeAt(analyzingIndex);
-        _listKey.currentState?.removeItem(
-          _messages.length - 1 - analyzingIndex, // Adjust index for reversed list
-          (context, animation) => _buildAnimatedMessage(removedMessage, analyzingIndex, animation),
-          duration: const Duration(milliseconds: 300),
-        );
-      }
-      
+      // Final update to mark streaming as complete
       if (mounted) {
-        // Add error message
-        _addMessage(Message.assistant(
-          'Sorry, I encountered an error while analyzing the image. Please try again.',
-        ));
         setState(() {
+          final currentMessage = _messages[messageIndex];
+          if (currentMessage is VisionAnalysisMessage) {
+            _messages[messageIndex] = currentMessage.copyWith(
+              content: fullResponse,
+              isStreaming: false,
+            );
+          }
           _isLoading = false;
         });
+      }
+    } catch (e) {
+      // On error, update the message to show an error state
+      if (mounted) {
+        final analyzingIndex = _messages.indexWhere((m) => m.id == analyzingMessage.id);
+        if (analyzingIndex != -1) {
+          setState(() {
+            final currentMessage = _messages[analyzingIndex];
+            if (currentMessage is VisionAnalysisMessage) {
+              _messages[analyzingIndex] = currentMessage.copyWith(
+                content: 'Sorry, I encountered an error while analyzing the image.',
+                isStreaming: false,
+                hasError: true,
+              );
+            }
+            _isLoading = false;
+          });
+        }
       }
     }
   }

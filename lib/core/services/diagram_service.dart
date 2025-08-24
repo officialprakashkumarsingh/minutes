@@ -144,8 +144,22 @@ class DiagramService extends ChangeNotifier {
       // Use base64 encoding for both to avoid URL length issues
       final encodedCode = base64.encode(utf8.encode(cleanCode));
       
-      // Always use the same reliable format
-      return 'https://mermaid.ink/img/$encodedCode?type=png';
+      // Define a high-contrast light theme for better export quality
+      final themeJson = jsonEncode({
+        "theme": "neutral",
+        "themeVariables": {
+          "background": "#FFFFFF",
+          "primaryColor": "#FFFFFF",
+          "primaryTextColor": "#000000",
+          "lineColor": "#333333",
+          "textColor": "#000000",
+          "fontSize": "18px"
+        }
+      });
+      final encodedTheme = base64.encode(utf8.encode(themeJson));
+
+      // Always use the same reliable format and append the theme
+      return 'https://mermaid.ink/img/$encodedCode?type=png&theme=$encodedTheme';
     } catch (e) {
       print('Error generating diagram URL: $e');
       return '';

@@ -10,12 +10,14 @@ class VisionAnalysisMessage extends Message {
     this.isAnalyzing = true,
     this.analysisPrompt,
     this.analysisResult,
+    bool hasError = false,
   }) : super(
           id: id,
           content: analysisResult ?? '',
           type: MessageType.assistant,
           timestamp: DateTime.now(),
           isStreaming: isAnalyzing,
+          hasError: hasError,
         );
 
   @override
@@ -33,6 +35,7 @@ class VisionAnalysisMessage extends Message {
       isAnalyzing: isStreaming ?? this.isAnalyzing,
       analysisPrompt: analysisPrompt,
       analysisResult: content ?? this.analysisResult,
+      hasError: hasError ?? this.hasError,
     );
   }
 }
