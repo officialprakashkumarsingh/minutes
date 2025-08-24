@@ -613,6 +613,7 @@ class _ChatInputState extends State<ChatInput> with TickerProviderStateMixin {
           }
           Navigator.pop(context);
         },
+        isAgentMode: widget.isAgentMode,
       ),
     );
   }
