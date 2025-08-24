@@ -360,7 +360,6 @@ class _MessageBubbleState extends State<MessageBubble>
                         if (widget.onExport != null)
                           _ActionButton(
                             icon: CupertinoIcons.cloud_download,
-                            label: 'Export',
                             onPressed: widget.onExport!,
                           ),
                       ] else if (widget.message is DiagramMessage) ...[
@@ -379,7 +378,6 @@ class _MessageBubbleState extends State<MessageBubble>
                         if (widget.onCopy != null)
                           _ActionButton(
                             icon: CupertinoIcons.doc_on_doc,
-                            label: 'Copy',
                             onPressed: widget.onCopy!,
                           ),
 
@@ -387,7 +385,6 @@ class _MessageBubbleState extends State<MessageBubble>
                         const SizedBox(width: 8),
                         _ActionButton(
                           icon: isPlaying ? CupertinoIcons.stop_circle : CupertinoIcons.speaker_2,
-                          label: isPlaying ? 'Stop' : 'Read Aloud',
                           onPressed: () {
                             if (isPlaying) {
                               ttsService.stop();
@@ -402,7 +399,6 @@ class _MessageBubbleState extends State<MessageBubble>
                           const SizedBox(width: 8),
                           _ActionButton(
                             icon: CupertinoIcons.arrow_2_circlepath,
-                            label: 'Regenerate',
                             onPressed: widget.onRegenerate!,
                           ),
                         ],
@@ -412,7 +408,6 @@ class _MessageBubbleState extends State<MessageBubble>
                           const SizedBox(width: 8),
                           _ActionButton(
                             icon: CupertinoIcons.photo,
-                            label: 'Export',
                             onPressed: _isExporting ? null : _exportTextAsImage,
                           ),
                         ],
@@ -1131,41 +1126,27 @@ class _VisionAnalysisShimmerState extends State<_VisionAnalysisShimmer>
 
 class _ActionButton extends StatelessWidget {
   final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const _ActionButton({
     required this.icon,
-    required this.label,
-    required this.onPressed,
+    this.onPressed,
   });
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
+      shape: const CircleBorder(),
       child: InkWell(
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(20),
+        customBorder: const CircleBorder(),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 18,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+          padding: const EdgeInsets.all(8),
+          child: Icon(
+            icon,
+            size: 20,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
           ),
         ),
       ),
