@@ -1029,15 +1029,6 @@ class _ChatPageState extends State<ChatPage> {
 
     _scrollToBottom();
 
-    // Show loading dialog
-    _showGenerationLoadingDialog(
-      context: context,
-      title: 'Generating Image',
-      subtitle: 'Creating visual artwork',
-      icon: Icons.auto_awesome_outlined,
-      tip: 'AI is painting your image',
-    );
-
     try {
       // Handle multiple image models or single model
       for (int i = 0; i < modelsToUse.length; i++) {
@@ -1479,36 +1470,23 @@ Format the response as:
         },
         onError: (error) {
           if (mounted) {
-            // Generate a sample chart on error
-            final sampleConfig = ChartService.generateSampleChart(prompt);
-            
-            setState(() {
-              final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
-              if (index != -1) {
-                _messages[index] = (assistantMessage as ChartMessage).copyWith(
-                  chartConfig: sampleConfig,
-                  isStreaming: false,
-                  hasError: false, // Don't show error, just use sample
-                );
-              }
-            });
+            final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
+            if (index != -1) {
+              setState(() {
+                _messages[index] = (_messages[index] as ChartMessage).copyWith(hasError: true);
+              });
+            }
           }
         },
       );
     } catch (e) {
-      // Generate sample on exception
-      final sampleConfig = ChartService.generateSampleChart(prompt);
-      
       if (mounted) {
-        setState(() {
-          final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
-          if (index != -1) {
-            _messages[index] = (assistantMessage as ChartMessage).copyWith(
-              chartConfig: sampleConfig,
-              isStreaming: false,
-            );
-          }
-        });
+        final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
+        if (index != -1) {
+          setState(() {
+            _messages[index] = (_messages[index] as ChartMessage).copyWith(hasError: true);
+          });
+        }
       }
     }
   }
