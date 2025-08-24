@@ -43,6 +43,7 @@ class _ChatPageState extends State<ChatPage> {
   final List<Message> _messages = [];
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _inputController = TextEditingController();
+  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
   
   bool _isLoading = false;
   bool _showTemplates = false;
@@ -432,13 +433,28 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildMessagesList() {
-    return ListView.builder(
+    return AnimatedList(
+      key: _listKey,
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      itemCount: _messages.length,
-      itemBuilder: (context, index) {
+      initialItemCount: _messages.length,
+      itemBuilder: (context, index, animation) {
+        if (index >= _messages.length) return const SizedBox.shrink();
         final message = _messages[index];
-        return Padding(
+        return _buildAnimatedMessage(message, index, animation);
+      },
+    );
+  }
+
+  Widget _buildAnimatedMessage(Message message, int index, Animation<double> animation) {
+    return FadeTransition(
+      opacity: animation,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.2),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+        child: Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: MessageBubble(
             message: message,
@@ -453,8 +469,8 @@ class _ChatPageState extends State<ChatPage> {
                 : null,
             onExport: () => _exportMessage(message, index),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -485,8 +501,8 @@ class _ChatPageState extends State<ChatPage> {
       timestamp: DateTime.now(),
     );
     
+    _addMessage(fileUploadMessage);
     setState(() {
-      _messages.add(fileUploadMessage);
       _isLoading = true;
     });
 
@@ -522,9 +538,7 @@ class _ChatPageState extends State<ChatPage> {
         final model = modelsToUse[i];
         final aiMessage = Message.assistant('', isStreaming: true);
         
-        setState(() {
-          _messages.add(aiMessage);
-        });
+        _addMessage(aiMessage);
         
         final messageIndex = _messages.length - 1;
         
@@ -601,8 +615,8 @@ class _ChatPageState extends State<ChatPage> {
     print('Current session ID: ${ChatHistoryService.instance.currentSessionId}');
 
     final userMessage = Message.user(content.trim());
+    _addMessage(userMessage);
     setState(() {
-      _messages.add(userMessage);
       _isLoading = true;
     });
 
@@ -647,9 +661,7 @@ class _ChatPageState extends State<ChatPage> {
           isStreaming: true,
         );
         
-        setState(() {
-          _messages.add(assistantMessage);
-        });
+        _addMessage(assistantMessage);
         
         final messageIndex = _messages.length - 1;
         print('Added assistant message at index: $messageIndex for model: $model');
@@ -666,10 +678,10 @@ class _ChatPageState extends State<ChatPage> {
       }
     } catch (e) {
       if (mounted) {
+        _addMessage(Message.error(
+          'Sorry, I encountered an error. Please try again.',
+        ));
         setState(() {
-          _messages.add(Message.error(
-            'Sorry, I encountered an error. Please try again.',
-          ));
           _isLoading = false;
         });
       }
@@ -785,6 +797,16 @@ class _ChatPageState extends State<ChatPage> {
         .join(' ');
   }
 
+  void _addMessage(Message message) {
+    if (mounted) {
+      _messages.add(message);
+      _listKey.currentState?.insertItem(
+        _messages.length - 1,
+        duration: const Duration(milliseconds: 400),
+      );
+    }
+  }
+
   Future<void> _regenerateMessage(int messageIndex) async {
     if (messageIndex <= 0 || messageIndex >= _messages.length) return;
 
@@ -793,9 +815,13 @@ class _ChatPageState extends State<ChatPage> {
     if (userMessage.type != MessageType.user) return;
 
     // Remove the current assistant message
-    setState(() {
-      _messages.removeAt(messageIndex);
-    });
+    final removedMessage = _messages.removeAt(messageIndex);
+    _listKey.currentState?.removeItem(
+      messageIndex,
+      (context, animation) => _buildAnimatedMessage(removedMessage, messageIndex, animation),
+      duration: const Duration(milliseconds: 300),
+    );
+    setState(() {});
 
     // Regenerate the response
     await _handleSendMessage(userMessage.content);
@@ -893,8 +919,8 @@ class _ChatPageState extends State<ChatPage> {
       imageData: imageData,
       model: bestVisionModel,
     );
+    _addMessage(userMessage);
     setState(() {
-      _messages.add(userMessage);
       _isLoading = true;
     });
 
@@ -906,9 +932,7 @@ class _ChatPageState extends State<ChatPage> {
       isAnalyzing: true,
       analysisPrompt: prompt,
     );
-    setState(() {
-      _messages.add(analyzingMessage);
-    });
+    _addMessage(analyzingMessage);
     
     _scrollToBottom();
 
@@ -921,15 +945,19 @@ class _ChatPageState extends State<ChatPage> {
       );
 
       // Remove analyzing indicator and add actual response
-      setState(() {
-        _messages.removeWhere((m) => m.id == analyzingMessage.id);
-      });
+      final analyzingIndex = _messages.indexWhere((m) => m.id == analyzingMessage.id);
+      if (analyzingIndex != -1) {
+        final removedMessage = _messages.removeAt(analyzingIndex);
+        _listKey.currentState?.removeItem(
+          analyzingIndex,
+          (context, animation) => _buildAnimatedMessage(removedMessage, analyzingIndex, animation),
+          duration: const Duration(milliseconds: 300),
+        );
+      }
 
       // Add AI response placeholder
       final aiMessage = Message.assistant('');
-      setState(() {
-        _messages.add(aiMessage);
-      });
+      _addMessage(aiMessage);
 
       final messageIndex = _messages.length - 1;
       String fullResponse = '';
@@ -949,17 +977,23 @@ class _ChatPageState extends State<ChatPage> {
       });
     } catch (e) {
       // Remove analyzing indicator if still present
-      setState(() {
-        _messages.removeWhere((m) => m.id == analyzingMessage.id);
-      });
+      final analyzingIndex = _messages.indexWhere((m) => m.id == analyzingMessage.id);
+      if (analyzingIndex != -1) {
+        final removedMessage = _messages.removeAt(analyzingIndex);
+        _listKey.currentState?.removeItem(
+          analyzingIndex,
+          (context, animation) => _buildAnimatedMessage(removedMessage, analyzingIndex, animation),
+          duration: const Duration(milliseconds: 300),
+        );
+      }
       
       if (mounted) {
+        // Add error message
+        _addMessage(Message.assistant(
+          'Sorry, I encountered an error while analyzing the image. Please try again.',
+        ));
         setState(() {
           _isLoading = false;
-          // Add error message
-          _messages.add(Message.assistant(
-            'Sorry, I encountered an error while analyzing the image. Please try again.',
-          ));
         });
       }
     }
@@ -980,8 +1014,8 @@ class _ChatPageState extends State<ChatPage> {
 
     // Add user message
     final userMessage = Message.user('Generate image: $prompt');
+    _addMessage(userMessage);
     setState(() {
-      _messages.add(userMessage);
       _isLoading = true;
     });
 
@@ -1003,9 +1037,7 @@ class _ChatPageState extends State<ChatPage> {
         
         // Create image message for each model
         final imageMessage = ImageMessage.generating(prompt, model);
-        setState(() {
-          _messages.add(imageMessage);
-        });
+        _addMessage(imageMessage);
         
         // Start image generation for this model
         _handleImageModelResponse(
@@ -1024,10 +1056,10 @@ class _ChatPageState extends State<ChatPage> {
       if (mounted) Navigator.of(context).pop();
       
       if (mounted) {
+        _addMessage(Message.error(
+          'Sorry, I encountered an error generating the image.',
+        ));
         setState(() {
-          _messages.add(Message.error(
-            'Sorry, I encountered an error generating the image.',
-          ));
           _isLoading = false;
         });
       }
@@ -1038,8 +1070,8 @@ class _ChatPageState extends State<ChatPage> {
     if (prompt.trim().isEmpty) return;
     
     final userMessage = Message.user('Create a diagram: $prompt');
+    _addMessage(userMessage);
     setState(() {
-      _messages.add(userMessage);
       _isLoading = true;
       // Reset auto-scroll for new message
       _autoScrollEnabled = true;
@@ -1104,8 +1136,8 @@ Generate the Mermaid code now:''';
       // Close loading dialog
       if (mounted) Navigator.of(context).pop();
       
+      _addMessage(diagramMessage);
       setState(() {
-        _messages.add(diagramMessage);
         _isLoading = false;
       });
       
@@ -1114,10 +1146,10 @@ Generate the Mermaid code now:''';
       // Close loading dialog
       if (mounted) Navigator.of(context).pop();
       
+      _addMessage(Message.error(
+        'Sorry, I encountered an error generating the diagram. Please try again.',
+      ));
       setState(() {
-        _messages.add(Message.error(
-          'Sorry, I encountered an error generating the diagram. Please try again.',
-        ));
         _isLoading = false;
       });
     }
@@ -1127,8 +1159,8 @@ Generate the Mermaid code now:''';
     if (prompt.trim().isEmpty) return;
 
     final userMessage = Message.user('Create a presentation: $prompt');
+    _addMessage(userMessage);
     setState(() {
-      _messages.add(userMessage);
       _isLoading = true;
       _autoScrollEnabled = true;
       _userIsScrolling = false;
@@ -1186,8 +1218,8 @@ Generate the complete presentation now:''';
       // Close loading dialog
       if (mounted) Navigator.of(context).pop();
 
+      _addMessage(presentationMessage);
       setState(() {
-        _messages.add(presentationMessage);
         _isLoading = false;
       });
 
@@ -1196,10 +1228,10 @@ Generate the complete presentation now:''';
       // Close loading dialog
       if (mounted) Navigator.of(context).pop();
       
+      _addMessage(Message.error(
+        'Sorry, I encountered an error generating the presentation. Please try again.',
+      ));
       setState(() {
-        _messages.add(Message.error(
-          'Sorry, I encountered an error generating the presentation. Please try again.',
-        ));
         _isLoading = false;
       });
     }
@@ -1377,9 +1409,7 @@ Generate the complete presentation now:''';
       timestamp: DateTime.now(),
     );
     
-    setState(() {
-      _messages.add(userMessage);
-    });
+    _addMessage(userMessage);
     
     // Show loading dialog
     _showGenerationLoadingDialog(
@@ -1421,9 +1451,7 @@ Format the response as:
       isStreaming: true,
     );
     
-    setState(() {
-      _messages.add(assistantMessage);
-    });
+    _addMessage(assistantMessage);
     
     try {
       // Get the selected model
@@ -1532,9 +1560,7 @@ Format the response as:
       timestamp: DateTime.now(),
     );
     
-    setState(() {
-      _messages.add(userMessage);
-    });
+    _addMessage(userMessage);
     
     // Generate flashcard prompt
     final flashcardPrompt = '''
@@ -1563,9 +1589,7 @@ Generate 5-10 flashcards covering key concepts.
       isStreaming: true,
     );
     
-    setState(() {
-      _messages.add(assistantMessage);
-    });
+    _addMessage(assistantMessage);
     
     try {
       final selectedModel = ModelService.instance.selectedModel;
@@ -1662,9 +1686,7 @@ Generate 5-10 flashcards covering key concepts.
       timestamp: DateTime.now(),
     );
     
-    setState(() {
-      _messages.add(userMessage);
-    });
+    _addMessage(userMessage);
     
     // Generate quiz prompt
     final quizPrompt = '''
@@ -1694,9 +1716,7 @@ Generate 5-10 questions. The correctAnswer is the index (0-3) of the correct opt
       isStreaming: true,
     );
     
-    setState(() {
-      _messages.add(assistantMessage);
-    });
+    _addMessage(assistantMessage);
     
     try {
       final selectedModel = ModelService.instance.selectedModel;

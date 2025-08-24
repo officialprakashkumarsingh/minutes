@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -65,8 +66,8 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            size: 20,
+            CupertinoIcons.back,
+            size: 24,
           ),
         ),
       ),
@@ -146,7 +147,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
                     
                     // Appearance
                     _buildSettingsTile(
-                      icon: Icons.palette_outlined,
+                      icon: CupertinoIcons.paintbrush,
                       title: 'Appearance',
                       subtitle: 'Theme and colors',
                       onTap: _showThemeSelector,
@@ -155,7 +156,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
                     
                     // AI Settings
                     _buildSettingsTile(
-                      icon: Icons.psychology_outlined,
+                      icon: CupertinoIcons.sparkles,
                       title: 'AI Response Style',
                       subtitle: 'Customize AI behavior',
                       onTap: _showMessageModeSelector,
@@ -309,7 +310,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  Icons.lock_open,
+                                  CupertinoIcons.lock_open,
                                   size: 12,
                                   color: theme.colorScheme.primary,
                                 ),
@@ -339,7 +340,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
                 ),
               ),
               Icon(
-                isLocked ? Icons.lock_outline : Icons.chevron_right_rounded,
+                isLocked ? CupertinoIcons.lock : CupertinoIcons.right_chevron,
                 color: isLocked 
                     ? theme.colorScheme.primary.withOpacity(0.6)
                     : theme.colorScheme.onSurface.withOpacity(0.3),
@@ -372,7 +373,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
                   Row(
                     children: [
                       Icon(
-                        Icons.info_outline,
+                        CupertinoIcons.info,
                         color: theme.colorScheme.primary,
                         size: 16,
                       ),
@@ -396,7 +397,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
               ),
             ),
             Icon(
-              Icons.chevron_right_rounded,
+              CupertinoIcons.right_chevron,
               color: theme.colorScheme.onSurface.withOpacity(0.3),
             ),
           ],
@@ -466,7 +467,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
               
               // Arrow
               Icon(
-                Icons.arrow_forward_ios,
+                CupertinoIcons.right_chevron,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
                 size: 16,
               ),
@@ -644,7 +645,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
                   const Spacer(),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(CupertinoIcons.xmark),
                   ),
                 ],
               ),
@@ -727,7 +728,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
-                      Icons.layers_outlined,
+                      CupertinoIcons.layers,
                       color: Theme.of(context).colorScheme.primary,
                       size: 18,
                     ),
@@ -885,7 +886,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
-                      Icons.auto_awesome_outlined,
+                      CupertinoIcons.wand_stars,
                       color: Theme.of(context).colorScheme.primary,
                       size: 18,
                     ),
@@ -1118,7 +1119,7 @@ class _ImageModelSelectorSheet extends StatelessWidget {
                                   ),
                                   child: isSelected
                                       ? Icon(
-                                          Icons.check,
+                                          CupertinoIcons.check_mark,
                                           color: Theme.of(context).colorScheme.onPrimary,
                                           size: 16,
                                         )
@@ -1380,7 +1381,7 @@ class _AboutBottomSheetState extends State<_AboutBottomSheet> {
                                 ),
                               )
                             : Icon(
-                                Icons.system_update,
+                                  CupertinoIcons.cloud_download,
                                 size: 18,
                                 color: theme.colorScheme.primary,
                               ),
@@ -1433,7 +1434,7 @@ class _AboutBottomSheetState extends State<_AboutBottomSheet> {
                 Row(
                   children: [
                     Icon(
-                      Icons.code_rounded,
+                      CupertinoIcons.chevron_left_slash_chevron_right,
                       size: 20,
                       color: theme.colorScheme.primary,
                     ),
@@ -1480,7 +1481,7 @@ class _AboutBottomSheetState extends State<_AboutBottomSheet> {
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              Icons.mail_outline,
+                              CupertinoIcons.mail,
                               color: theme.colorScheme.primary,
                               size: 18,
                             ),
@@ -1507,7 +1508,7 @@ class _AboutBottomSheetState extends State<_AboutBottomSheet> {
                             ),
                           ),
                           Icon(
-                            Icons.chevron_right_rounded,
+                            CupertinoIcons.right_chevron,
                             color: theme.colorScheme.onSurface.withOpacity(0.3),
                             size: 20,
                           ),
@@ -1554,7 +1555,7 @@ class _AboutBottomSheetState extends State<_AboutBottomSheet> {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isMore ? Icons.more_horiz : Icons.check,
+              isMore ? CupertinoIcons.ellipsis : CupertinoIcons.check_mark,
               size: 12,
               color: theme.colorScheme.primary,
             ),

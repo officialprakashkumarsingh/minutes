@@ -281,10 +281,12 @@ class _MessageBubbleState extends State<MessageBubble>
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.9,
               ),
-            padding: isUser 
-                ? const EdgeInsets.symmetric(horizontal: 16, vertical: 12)
+            padding: isUser
+                ? (widget.message is VisionMessage
+                    ? const EdgeInsets.symmetric(horizontal: 0, vertical: 8)
+                    : const EdgeInsets.symmetric(horizontal: 16, vertical: 12))
                 : const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-            decoration: isUser
+            decoration: (isUser && widget.message is! VisionMessage)
                 ? BoxDecoration(
                     color: _getBubbleColor(context, isUser, hasError),
                     borderRadius: BorderRadius.circular(16).copyWith(

@@ -53,7 +53,7 @@ class ChatInput extends StatefulWidget {
   State<ChatInput> createState() => _ChatInputState();
 }
 
-class _ChatInputState extends State<ChatInput> {
+class _ChatInputState extends State<ChatInput> with TickerProviderStateMixin {
   late TextEditingController _controller;
   final FocusNode _focusNode = FocusNode();
   bool _canSend = false;
@@ -68,6 +68,11 @@ class _ChatInputState extends State<ChatInput> {
   String? _pendingImageData;
   Timer? _typingTimer;
   
+  // Animation scales for buttons
+  double _extensionsButtonScale = 1.0;
+  double _micButtonScale = 1.0;
+  double _sendButtonScale = 1.0;
+
   // Hidden file content storage
   String _hiddenFileContent = '';
   List<String> _uploadedFileNames = [];
@@ -215,42 +220,55 @@ class _ChatInputState extends State<ChatInput> {
           child: SafeArea(
             child: Row(
               children: [
-                // Extensions button with close option
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    IconButton(
-                      onPressed: _showExtensionsSheet,
-                      icon: Icon(
-                        Icons.extension_outlined,
-                        color: _isAnyExtensionActive() 
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                        size: 24,
-                      ),
-                      tooltip: 'Extensions',
-                    ),
-                    if (_isAnyExtensionActive())
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: GestureDetector(
-                          onTap: _clearAllExtensions,
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.error,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.close,
-                              size: 10,
-                              color: Theme.of(context).colorScheme.onError,
-                            ),
+                // Extensions button with animation
+                GestureDetector(
+                  onTapDown: (_) => setState(() => _extensionsButtonScale = 0.85),
+                  onTapUp: (_) {
+                    setState(() => _extensionsButtonScale = 1.0);
+                    _showExtensionsSheet();
+                  },
+                  onTapCancel: () => setState(() => _extensionsButtonScale = 1.0),
+                  child: AnimatedScale(
+                    scale: _extensionsButtonScale,
+                    duration: const Duration(milliseconds: 150),
+                    curve: Curves.easeOutCubic,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          child: Icon(
+                            Icons.extension_outlined,
+                            color: _isAnyExtensionActive()
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            size: 24,
                           ),
                         ),
-                      ),
-                  ],
+                        if (_isAnyExtensionActive())
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: GestureDetector(
+                              onTap: _clearAllExtensions,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.error,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.close,
+                                  size: 10,
+                                  color: Theme.of(context).colorScheme.onError,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
                 
                 // Text input - no background
@@ -299,40 +317,90 @@ class _ChatInputState extends State<ChatInput> {
                   ),
                 ),
 
+                // Mic button with animation
                 Consumer<SpeechService>(
                   builder: (context, speechService, child) {
-                    return IconButton(
-                      icon: Icon(speechService.isListening ? Icons.mic : Icons.mic_none),
-                      onPressed: () => _handleSpeechToText(speechService),
+                    return GestureDetector(
+                      onTapDown: (_) => setState(() => _micButtonScale = 0.85),
+                      onTapUp: (_) {
+                        setState(() => _micButtonScale = 1.0);
+                        _handleSpeechToText(speechService);
+                      },
+                      onTapCancel: () => setState(() => _micButtonScale = 1.0),
+                      child: AnimatedScale(
+                        scale: _micButtonScale,
+                        duration: const Duration(milliseconds: 150),
+                        curve: Curves.easeOutCubic,
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          child: Icon(
+                            speechService.isListening ? Icons.mic : Icons.mic_none,
+                            color: speechService.isListening
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                      ),
                     );
                   },
                 ),
 
                 const SizedBox(width: 12),
                 
-                // Send/Stop button
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeInOutCubic,
-                  child: Material(
-                    color: widget.isLoading
-                        ? Colors.red
+                // Send/Stop button with animation
+                GestureDetector(
+                  onTapDown: (_) {
+                    if (widget.isLoading || _canSend) {
+                      setState(() => _sendButtonScale = 0.85);
+                    }
+                  },
+                  onTapUp: (_) {
+                    setState(() => _sendButtonScale = 1.0);
+                    final action = widget.isLoading
+                        ? _handleStop
                         : (_canSend 
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.outline.withOpacity(0.3)),
-                    borderRadius: BorderRadius.circular(24),
-                    child: InkWell(
-                      onTap: widget.isLoading ? _handleStop : (_canSend ? (_imageGenerationMode ? _handleImageGenerationDirect : (_diagramGenerationMode ? _handleDiagramGenerationDirect : (_presentationGenerationMode ? _handlePresentationGenerationDirect : (_chartGenerationMode ? _handleChartGenerationDirect : (_flashcardGenerationMode ? _handleFlashcardGenerationDirect : (_quizGenerationMode ? _handleQuizGenerationDirect : _handleSend)))))) : null),
-                      borderRadius: BorderRadius.circular(24),
-                      child: SizedBox(
-                        width: 48,
-                        height: 48,
-                        child: Center(
-                          child: Icon(
-                            _getButtonIcon(),
-                            color: _getButtonIconColor(context),
-                            size: 20,
-                          ),
+                            ? (_imageGenerationMode
+                                ? _handleImageGenerationDirect
+                                : (_diagramGenerationMode
+                                    ? _handleDiagramGenerationDirect
+                                    : (_presentationGenerationMode
+                                        ? _handlePresentationGenerationDirect
+                                        : (_chartGenerationMode
+                                            ? _handleChartGenerationDirect
+                                            : (_flashcardGenerationMode
+                                                ? _handleFlashcardGenerationDirect
+                                                : (_quizGenerationMode
+                                                    ? _handleQuizGenerationDirect
+                                                    : _handleSend))))))
+                            : null);
+                    if (action != null) {
+                      action();
+                    }
+                  },
+                  onTapCancel: () => setState(() => _sendButtonScale = 1.0),
+                  child: AnimatedScale(
+                    scale: _sendButtonScale,
+                    duration: const Duration(milliseconds: 150),
+                    curve: Curves.easeOutCubic,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeInOutCubic,
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: widget.isLoading
+                            ? Colors.red
+                            : (_canSend
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.outline.withOpacity(0.3)),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          _getButtonIcon(),
+                          color: _getButtonIconColor(context),
+                          size: 20,
                         ),
                       ),
                     ),
