@@ -137,7 +137,7 @@ class _MessageBubbleState extends State<MessageBubble>
       );
       
       // Convert boundary to image
-      final image = await boundary.toImage(pixelRatio: 2.5); // Slightly reduced pixelRatio
+      final image = await boundary.toImage(pixelRatio: 3.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final pngBytes = byteData?.buffer.asUint8List();
 
@@ -193,7 +193,7 @@ class _MessageBubbleState extends State<MessageBubble>
           top: 0,
           child: Material(
             child: Container(
-              width: 1200,
+              width: 1800,
               color: Theme.of(context).scaffoldBackgroundColor,
               child: RepaintBoundary(
                 key: key,
@@ -1102,7 +1102,7 @@ class _VisionAnalysisShimmerState extends State<_VisionAnalysisShimmer>
                     width: 150 + (index * 30),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(4),
-                      color: theme.colorScheme.surfaceVariant,
+                      color: theme.colorScheme.onSurface.withOpacity(0.1),
                     ),
                   ),
                 );

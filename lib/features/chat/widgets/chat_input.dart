@@ -30,8 +30,6 @@ class ChatInput extends StatefulWidget {
   final String selectedModel;
   final bool isLoading;
   final bool enabled;
-  final bool isAgentMode;
-  final Function(bool) onAgentModeToggle;
 
   const ChatInput({
     super.key,
@@ -50,8 +48,6 @@ class ChatInput extends StatefulWidget {
     this.selectedModel = '',
     this.isLoading = false,
     this.enabled = true,
-    this.isAgentMode = false,
-    required this.onAgentModeToggle,
   });
 
   @override
@@ -302,9 +298,7 @@ class _ChatInputState extends State<ChatInput> with TickerProviderStateMixin {
                                                   ? 'What topic for flashcards?'
                                                   : _quizGenerationMode
                                                       ? 'What topic for the quiz?'
-                      : (widget.isAgentMode
-                          ? 'Describe the task for the agent...'
-                          : 'Type your message...'))
+                      : 'Type your message...')
                           : 'Select a model to start chatting',
                       hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
@@ -594,26 +588,10 @@ class _ChatInputState extends State<ChatInput> with TickerProviderStateMixin {
               _presentationGenerationMode = false;
               _chartGenerationMode = false;
               _flashcardGenerationMode = false;
-              widget.onAgentModeToggle(false);
             }
           });
           Navigator.pop(context);
         },
-        onAgentModeToggle: (enabled) {
-          widget.onAgentModeToggle(enabled);
-          if (enabled) {
-            setState(() {
-              _imageGenerationMode = false;
-              _diagramGenerationMode = false;
-              _presentationGenerationMode = false;
-              _chartGenerationMode = false;
-              _flashcardGenerationMode = false;
-              _quizGenerationMode = false;
-            });
-          }
-          Navigator.pop(context);
-        },
-        isAgentMode: widget.isAgentMode,
       ),
     );
   }
@@ -869,8 +847,6 @@ class _ExtensionsBottomSheet extends StatelessWidget {
   final Function(bool) onFlashcardToggle;
   final Function(bool) onQuizToggle;
   final VoidCallback onEnhancePrompt;
-  final Function(bool) onAgentModeToggle;
-  final bool isAgentMode;
 
   const _ExtensionsBottomSheet({
     required this.imageGenerationMode,
@@ -888,8 +864,6 @@ class _ExtensionsBottomSheet extends StatelessWidget {
     required this.onFlashcardToggle,
     required this.onQuizToggle,
     required this.onEnhancePrompt,
-    required this.onAgentModeToggle,
-    required this.isAgentMode,
   });
 
   @override
@@ -1024,15 +998,7 @@ class _ExtensionsBottomSheet extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Expanded(
-                      child: _ExtensionTile(
-                        icon: CupertinoIcons.rocket_fill,
-                        title: 'Agent',
-                        subtitle: '',
-                        isToggled: isAgentMode,
-                        onTap: () => onAgentModeToggle(!isAgentMode),
-                      ),
-                    ),
+                    Expanded(child: Container()), // Empty space for alignment
                     const SizedBox(width: 10),
                     Expanded(child: Container()), // Empty space for alignment
                   ],

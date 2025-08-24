@@ -46,7 +46,6 @@ class _ChatPageState extends State<ChatPage> {
   final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
   
   bool _isLoading = false;
-  bool _isAgentMode = false;
   bool _showTemplates = false;
   bool _showScrollToBottom = false;
   bool _userIsScrolling = false;
@@ -197,13 +196,7 @@ class _ChatPageState extends State<ChatPage> {
                 });
               },
               isLoading: _isLoading,
-              isAgentMode: _isAgentMode,
               enabled: modelService.selectedModel.isNotEmpty && !modelService.isLoading,
-              onAgentModeToggle: (enabled) {
-                setState(() {
-                  _isAgentMode = enabled;
-                });
-              },
             ),
               ],
             ),
@@ -701,22 +694,12 @@ class _ChatPageState extends State<ChatPage> {
     int modelIndex,
   ) async {
     try {
-      String systemPrompt = MessageModeService.instance.effectiveSystemPrompt;
-      if (_isAgentMode) {
-        final agentMode = MessageModeService.instance.modes.firstWhere((m) => m.id == 'agent');
-        systemPrompt = agentMode.systemPrompt;
-        // Reset agent mode after use
-        setState(() {
-          _isAgentMode = false;
-        });
-      }
-
       print('Starting response for model: $model at index: $messageIndex');
       final stream = await ApiService.sendMessage(
         message: content,
         model: model,
         conversationHistory: history,
-        systemPrompt: systemPrompt,
+        systemPrompt: MessageModeService.instance.effectiveSystemPrompt,
       );
 
       String accumulatedContent = '';
