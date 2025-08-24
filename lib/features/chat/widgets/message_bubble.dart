@@ -128,14 +128,11 @@ class _MessageBubbleState extends State<MessageBubble>
       // This is the most performance-intensive part
       final RenderRepaintBoundary boundary = await _captureWidget(
         context: context,
-        builder: (context) => RepaintBoundary(
-          key: exportKey,
-          child: _ExportMessageWidget(
-            userMessage: userMessage,
-            aiMessage: widget.message,
-            aiModel: aiModel,
-            timestamp: timestamp,
-          ),
+        child: _ExportMessageWidget(
+          userMessage: userMessage,
+          aiMessage: widget.message,
+          aiModel: aiModel,
+          timestamp: timestamp,
         ),
       );
       
@@ -181,37 +178,26 @@ class _MessageBubbleState extends State<MessageBubble>
   // Helper to render a widget off-screen and return its boundary
   Future<RenderRepaintBoundary> _captureWidget({
     required BuildContext context,
-    required WidgetBuilder builder,
+    required Widget child,
   }) async {
     final GlobalKey key = GlobalKey();
-
     final completer = Completer<RenderRepaintBoundary>();
 
-    // Use an overlay to render the widget off-screen without affecting the main UI
     final overlayState = Overlay.of(context);
     OverlayEntry? overlayEntry;
 
     overlayEntry = OverlayEntry(
       builder: (context) {
         return Positioned(
-          left: -2000, // Position off-screen
+          left: -2000,
           top: 0,
           child: Material(
             child: Container(
               width: 1200,
               color: Theme.of(context).scaffoldBackgroundColor,
-              child: Builder(
-                builder: (context) {
-                  // Capture the boundary after the frame is rendered
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    final boundary = key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-                    if (boundary != null && !completer.isCompleted) {
-                      completer.complete(boundary);
-                      overlayEntry?.remove(); // Clean up the overlay
-                    }
-                  });
-                  return builder(context);
-                },
+              child: RepaintBoundary(
+                key: key,
+                child: child,
               ),
             ),
           ),
@@ -220,6 +206,22 @@ class _MessageBubbleState extends State<MessageBubble>
     );
 
     overlayState.insert(overlayEntry);
+
+    // Wait for the next frame to ensure the widget is rendered
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        final boundary = key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+        if (boundary != null) {
+          completer.complete(boundary);
+        } else {
+          completer.completeError(Exception('Could not find RenderRepaintBoundary.'));
+        }
+      } catch (e) {
+        completer.completeError(e);
+      } finally {
+        overlayEntry?.remove();
+      }
+    });
 
     return completer.future;
   }
@@ -1079,28 +1081,14 @@ class _VisionAnalysisShimmerState extends State<_VisionAnalysisShimmer>
         return Container(
           width: 280,
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(12),
-          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.remove_red_eye_outlined,
-                    size: 20,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Analyzing image...',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+              Text(
+                'Analyzing image...',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               const SizedBox(height: 12),
               // Simple shimmer bars like image generation
