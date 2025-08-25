@@ -81,4 +81,16 @@ class VisionMessage extends Message {
   String toString() {
     return 'VisionMessage(id: $id, type: $type, content: ${content.length > 50 ? '${content.substring(0, 50)}...' : content}, hasImage: ${imageData.isNotEmpty})';
   }
+
+  factory VisionMessage.fromJson(Map<String, dynamic> json, Map<String, dynamic> metadata) {
+    return VisionMessage(
+      id: json['id'],
+      content: json['content'],
+      type: MessageType.user, // Vision messages are always from user
+      timestamp: DateTime.parse(json['created_at']),
+      imageData: metadata['imageData'] ?? '',
+      analysisPrompt: metadata['prompt'] ?? json['content'],
+      model: metadata['model'],
+    );
+  }
 }

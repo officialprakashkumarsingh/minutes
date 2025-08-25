@@ -21,7 +21,13 @@ class ThemeProvider extends ChangeNotifier {
   ThemeMode get themeMode => _themeMode;
   
   ThemeData get lightTheme => _selectedTheme.lightTheme;
-  ThemeData get darkTheme => _selectedTheme.darkTheme;
+  ThemeData get darkTheme {
+    // If the selected theme is the default, use Midnight Black as the dark theme.
+    if (_selectedTheme.name == 'default') {
+      return AppThemes.midnightTheme.darkTheme;
+    }
+    return _selectedTheme.darkTheme;
+  }
   
   bool get isSystemDark {
     return SchedulerBinding.instance.platformDispatcher.platformBrightness == 

@@ -85,4 +85,16 @@ class ImageMessage extends Message {
       hasError: true,
     );
   }
+
+  factory ImageMessage.fromJson(Map<String, dynamic> json, Map<String, dynamic> metadata) {
+    return ImageMessage(
+      id: json['id'],
+      content: json['content'],
+      type: MessageType.assistant, // Image messages are always from assistant
+      timestamp: DateTime.parse(json['created_at']),
+      imageUrl: metadata['imageUrl'] ?? '',
+      prompt: metadata['prompt'] ?? '',
+      model: metadata['model'] ?? '',
+    );
+  }
 }

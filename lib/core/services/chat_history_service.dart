@@ -1,6 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/message_model.dart';
+import '../models/image_message_model.dart';
+import '../models/vision_message_model.dart';
+import '../models/diagram_message_model.dart';
+import '../models/presentation_message_model.dart';
+import '../models/chart_message_model.dart';
+import '../models/flashcard_message_model.dart';
+import '../models/quiz_message_model.dart';
 import 'app_service.dart';
 
 class ChatSession {
@@ -221,21 +228,38 @@ class ChatHistoryService extends ChangeNotifier {
     try {
       final response = await _supabase
           .from('chat_messages')
-          .select()
+          .select('*, metadata:chat_message_metadata(*)')
           .eq('session_id', sessionId)
           .order('created_at', ascending: true);
       
       final messages = (response as List).map((json) {
-        final type = json['role'] == 'user' 
-            ? MessageType.user 
-            : MessageType.assistant;
-        
-        return Message(
-          id: json['id'],
-          content: json['content'],
-          type: type,
-          timestamp: DateTime.parse(json['created_at']),
-        );
+        final metadata = json['metadata'];
+        final messageType = metadata?['type'];
+
+        switch (messageType) {
+          case 'image':
+            return ImageMessage.fromJson(json, metadata);
+          case 'vision':
+            return VisionMessage.fromJson(json, metadata);
+          case 'diagram':
+            return DiagramMessage.fromJson(json, metadata);
+          case 'presentation':
+            return PresentationMessagePersistence.fromJson(json, metadata);
+          case 'chart':
+            return ChartMessage.fromJson(json, metadata);
+          case 'flashcard':
+            return FlashcardMessage.fromJson(json, metadata);
+          case 'quiz':
+            return QuizMessage.fromJson(json, metadata);
+          default:
+            return Message(
+              id: json['id'],
+              content: json['content'],
+              type: json['role'] == 'user' ? MessageType.user : MessageType.assistant,
+              timestamp: DateTime.parse(json['created_at']),
+              hasError: json['hasError'] ?? false,
+            );
+        }
       }).toList();
       
       // Cache messages in the session
@@ -268,7 +292,6 @@ class ChatHistoryService extends ChangeNotifier {
   // Save message to current session
   Future<void> saveMessage(Message message, {String? modelName}) async {
     try {
-      // Don't create a new session here - it should already exist
       if (_currentSessionId == null) {
         print('Warning: No active session for saving message');
         return;
@@ -277,16 +300,63 @@ class ChatHistoryService extends ChangeNotifier {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return;
       
-      await _supabase.from('chat_messages').insert({
+      final Map<String, dynamic> data = {
         'session_id': _currentSessionId,
         'user_id': userId,
         'content': message.content,
         'role': message.type == MessageType.user ? 'user' : 'assistant',
         'model_name': modelName,
-      });
+        'metadata': {},
+      };
+
+      // Add specific metadata based on message type
+      if (message is ImageMessage) {
+        data['metadata'] = {
+          'type': 'image',
+          'prompt': message.prompt,
+          'model': message.model,
+          'imageUrl': message.imageUrl,
+        };
+      } else if (message is VisionMessage) {
+        data['metadata'] = {
+          'type': 'vision',
+          'prompt': message.analysisPrompt,
+          'imageData': message.imageData,
+        };
+      } else if (message is DiagramMessage) {
+        data['metadata'] = {
+          'type': 'diagram',
+          'prompt': message.prompt,
+          'mermaidCode': message.mermaidCode,
+        };
+      } else if (message is PresentationMessage) {
+        data['metadata'] = {
+          'type': 'presentation',
+          'prompt': message.prompt,
+          'slides': message.slides.map((s) => s.toJson()).toList(),
+        };
+      } else if (message is ChartMessage) {
+        data['metadata'] = {
+          'type': 'chart',
+          'prompt': message.prompt,
+          'chartConfig': message.chartConfig,
+        };
+      } else if (message is FlashcardMessage) {
+        data['metadata'] = {
+          'type': 'flashcard',
+          'prompt': message.prompt,
+          'flashcards': message.flashcards.map((f) => f.toJson()).toList(),
+        };
+      } else if (message is QuizMessage) {
+        data['metadata'] = {
+          'type': 'quiz',
+          'prompt': message.prompt,
+          'questions': message.questions.map((q) => q.toJson()).toList(),
+        };
+      }
+
+      await _supabase.from('chat_messages').insert(data);
       
-      // Don't reload sessions here - it causes issues with streaming
-      // Just update the message count locally if needed
     } catch (e) {
       print('Error saving message: $e');
     }
