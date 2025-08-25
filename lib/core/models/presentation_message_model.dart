@@ -81,6 +81,15 @@ class PresentationMessage extends Message {
       hasError: hasError ?? this.hasError,
     );
   }
+
+  factory PresentationMessage.fromJson(Map<String, dynamic> json, Map<String, dynamic> metadata) {
+    return PresentationMessage.assistant(
+      prompt: metadata['prompt'] ?? '',
+      slides: (metadata['slides'] as List? ?? [])
+          .map((s) => PresentationSlide.fromJson(s as Map<String, dynamic>))
+          .toList(),
+    );
+  }
 }
 
 class PresentationSlide {

@@ -88,16 +88,16 @@ class FlashcardMessage extends Message {
     };
   }
 
-  factory FlashcardMessage.fromJson(Map<String, dynamic> json) {
+  factory FlashcardMessage.fromJson(Map<String, dynamic> json, Map<String, dynamic> metadata) {
     return FlashcardMessage(
-      id: json['id'] as String,
-      prompt: json['prompt'] as String,
-      flashcards: (json['flashcards'] as List)
+      id: json['id'],
+      prompt: metadata['prompt'] ?? '',
+      flashcards: (metadata['flashcards'] as List? ?? [])
           .map((f) => FlashcardItem.fromJson(f as Map<String, dynamic>))
           .toList(),
-      timestamp: DateTime.parse(json['timestamp'] as String),
-      isStreaming: json['isStreaming'] as bool? ?? false,
-      hasError: json['hasError'] as bool? ?? false,
+      timestamp: DateTime.parse(json['created_at']),
+      isStreaming: false,
+      hasError: json['hasError'] ?? false,
     );
   }
 }

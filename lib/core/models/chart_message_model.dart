@@ -67,15 +67,15 @@ class ChartMessage extends Message {
     };
   }
 
-  factory ChartMessage.fromJson(Map<String, dynamic> json) {
+  factory ChartMessage.fromJson(Map<String, dynamic> json, Map<String, dynamic> metadata) {
     return ChartMessage(
-      id: json['id'] as String,
-      prompt: json['prompt'] as String,
-      chartConfig: json['chartConfig'] as String,
-      chartType: json['chartType'] as String? ?? 'bar',
-      timestamp: DateTime.parse(json['timestamp'] as String),
-      isStreaming: json['isStreaming'] as bool? ?? false,
-      hasError: json['hasError'] as bool? ?? false,
+      id: json['id'],
+      prompt: metadata['prompt'] ?? '',
+      chartConfig: metadata['chartConfig'] ?? '',
+      chartType: metadata['chartType'] ?? 'bar',
+      timestamp: DateTime.parse(json['created_at']),
+      isStreaming: false,
+      hasError: json['hasError'] ?? false,
     );
   }
 }

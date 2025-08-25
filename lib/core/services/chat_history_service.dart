@@ -8,6 +8,8 @@ import '../models/presentation_message_model.dart';
 import '../models/chart_message_model.dart';
 import '../models/flashcard_message_model.dart';
 import '../models/quiz_message_model.dart';
+import '../models/vision_analysis_message_model.dart';
+import '../models/file_upload_message_model.dart';
 import 'app_service.dart';
 
 class ChatSession {
@@ -228,29 +230,29 @@ class ChatHistoryService extends ChangeNotifier {
     try {
       final response = await _supabase
           .from('chat_messages')
-          .select('*, metadata:chat_message_metadata(*)')
+          .select() // Select all columns, metadata will be a JSON object
           .eq('session_id', sessionId)
           .order('created_at', ascending: true);
       
-      final messages = (response as List).map((json) {
-        final metadata = json['metadata'];
-        final messageType = metadata?['type'];
+      final messages = (response as List).map<Message>((json) {
+        final metadata = json['metadata'] as Map<String, dynamic>?;
+        final messageType = metadata?['type'] as String?;
 
         switch (messageType) {
           case 'image':
-            return ImageMessage.fromJson(json, metadata);
+            return ImageMessage.fromJson(json, metadata!);
           case 'vision':
-            return VisionMessage.fromJson(json, metadata);
+            return VisionMessage.fromJson(json, metadata!);
           case 'diagram':
-            return DiagramMessage.fromJson(json, metadata);
+            return DiagramMessage.fromJson(json, metadata!);
           case 'presentation':
-            return PresentationMessagePersistence.fromJson(json, metadata);
+            return PresentationMessage.fromJson(json, metadata!);
           case 'chart':
-            return ChartMessage.fromJson(json, metadata);
+            return ChartMessage.fromJson(json, metadata!);
           case 'flashcard':
-            return FlashcardMessage.fromJson(json, metadata);
+            return FlashcardMessage.fromJson(json, metadata!);
           case 'quiz':
-            return QuizMessage.fromJson(json, metadata);
+            return QuizMessage.fromJson(json, metadata!);
           default:
             return Message(
               id: json['id'],

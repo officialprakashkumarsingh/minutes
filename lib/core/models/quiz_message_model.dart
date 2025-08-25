@@ -94,16 +94,16 @@ class QuizMessage extends Message {
     };
   }
 
-  factory QuizMessage.fromJson(Map<String, dynamic> json) {
+  factory QuizMessage.fromJson(Map<String, dynamic> json, Map<String, dynamic> metadata) {
     return QuizMessage(
-      id: json['id'] as String,
-      prompt: json['prompt'] as String,
-      questions: (json['questions'] as List)
+      id: json['id'],
+      prompt: metadata['prompt'] ?? '',
+      questions: (metadata['questions'] as List? ?? [])
           .map((q) => QuizQuestion.fromJson(q as Map<String, dynamic>))
           .toList(),
-      timestamp: DateTime.parse(json['timestamp'] as String),
-      isStreaming: json['isStreaming'] as bool? ?? false,
-      hasError: json['hasError'] as bool? ?? false,
+      timestamp: DateTime.parse(json['created_at']),
+      isStreaming: false,
+      hasError: json['hasError'] ?? false,
     );
   }
 }

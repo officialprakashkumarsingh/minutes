@@ -72,4 +72,15 @@ class DiagramMessage extends Message {
       hasError: hasError ?? this.hasError,
     );
   }
+
+  factory DiagramMessage.fromJson(Map<String, dynamic> json, Map<String, dynamic> metadata) {
+    return DiagramMessage(
+      id: json['id'],
+      prompt: metadata['prompt'] ?? '',
+      mermaidCode: metadata['mermaidCode'] ?? '',
+      timestamp: DateTime.parse(json['created_at']),
+      isStreaming: false,
+      hasError: json['hasError'] ?? false,
+    );
+  }
 }
