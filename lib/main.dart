@@ -20,18 +20,24 @@ void main() async {
   // Initialize core services
   await AppService.initialize();
   await SpeechService.instance.initialize();
+
+  // Initialize theme provider before running the app
+  final themeProvider = ThemeProvider();
+  await themeProvider.initialize();
   
-  runApp(const AhamAIApp());
+  runApp(AhamAIApp(themeProvider: themeProvider));
 }
 
 class AhamAIApp extends StatelessWidget {
-  const AhamAIApp({super.key});
+  final ThemeProvider themeProvider;
+
+  const AhamAIApp({super.key, required this.themeProvider});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider.value(value: ModelService.instance),
         ChangeNotifierProvider.value(value: SpeechService.instance),
         ChangeNotifierProvider.value(value: TtsService.instance),

@@ -12,8 +12,10 @@ class ThemeProvider extends ChangeNotifier {
   AppThemeData _selectedTheme = AppThemes.defaultTheme;
   ThemeMode _themeMode = ThemeMode.system;
   
-  ThemeProvider() {
-    _loadThemeFromPrefs();
+  ThemeProvider();
+
+  Future<void> initialize() async {
+    await _loadThemeFromPrefs();
   }
   
   // Getters
@@ -64,7 +66,12 @@ class ThemeProvider extends ChangeNotifier {
   }
   
   // Persistence
-  void _loadThemeFromPrefs() {
+  Future<void> _loadThemeFromPrefs() async {
+    // Wait for prefs to be initialized
+    while (AppService.prefs == null) {
+      await Future.delayed(const Duration(milliseconds: 10));
+    }
+
     final themeName = AppService.prefs.getString(_themeKey);
     if (themeName != null) {
       final theme = AppThemes.allThemes.firstWhere(

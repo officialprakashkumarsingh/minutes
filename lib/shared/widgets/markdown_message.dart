@@ -891,7 +891,7 @@ class _CodeBlockWidgetState extends State<_CodeBlockWidget> {
                   child: HighlightView(
                     widget.code,
                     language: widget.language.isEmpty ? 'plaintext' : widget.language,
-                    theme: isDark ? monokaiSublimeTheme : atomOneLightTheme,
+                    theme: monokaiSublimeTheme, // Always use dark theme for code
                     textStyle: GoogleFonts.jetBrainsMono(
                       fontSize: 13,
                       height: 1.5,

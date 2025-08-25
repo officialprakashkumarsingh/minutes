@@ -169,7 +169,9 @@ class _ChatPageState extends State<ChatPage> {
               children: [
                 // Chat messages
                 Expanded(
-                  child: _messages.isEmpty ? _buildEmptyState() : _buildMessagesList(),
+                  child: _isLoadingHistory
+                      ? _buildShimmerList()
+                      : (_messages.isEmpty ? _buildEmptyState() : _buildMessagesList()),
                 ),
 
                 // Templates quick access
@@ -233,6 +235,27 @@ class _ChatPageState extends State<ChatPage> {
           ),
         ],
       );
+      },
+    );
+  }
+
+  Widget _buildShimmerList() {
+    return ListView.builder(
+      itemCount: 6, // Show a few shimmer bubbles
+      itemBuilder: (context, index) {
+        final isUser = index % 2 != 0;
+        return Align(
+          alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            width: MediaQuery.of(context).size.width * (0.5 + (index % 3) * 0.1),
+            height: 60 + (index % 3) * 20.0,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        );
       },
     );
   }
@@ -925,6 +948,7 @@ class _ChatPageState extends State<ChatPage> {
       model: bestVisionModel,
     );
     _addMessage(userMessage);
+    ChatHistoryService.instance.saveMessage(userMessage);
     setState(() {
       _isLoading = true;
     });
@@ -1023,6 +1047,7 @@ class _ChatPageState extends State<ChatPage> {
     // Add user message
     final userMessage = Message.user('Generate image: $prompt');
     _addMessage(userMessage);
+    ChatHistoryService.instance.saveMessage(userMessage);
     setState(() {
       _isLoading = true;
     });
@@ -1319,42 +1344,48 @@ Generate the complete presentation now:''';
       if (mounted && messageIndex < _messages.length) {
         if (imageUrl != null) {
           // Success - update with completed image
+          final completedMessage = ImageMessage.completed(prompt, model, imageUrl);
           setState(() {
-            _messages[messageIndex] = ImageMessage.completed(prompt, model, imageUrl);
+            _messages[messageIndex] = completedMessage;
             
             // Set loading to false when last model completes
             if (modelIndex == totalModels - 1) {
               _isLoading = false;
             }
           });
+          ChatHistoryService.instance.saveMessage(completedMessage, modelName: model);
         } else {
           // Failed - show error
+          final errorMessage = ImageMessage.error(
+            prompt,
+            model,
+            'Failed to generate image'
+          );
           setState(() {
-            _messages[messageIndex] = ImageMessage.error(
-              prompt, 
-              model, 
-              'Failed to generate image'
-            );
+            _messages[messageIndex] = errorMessage;
             
             if (modelIndex == totalModels - 1) {
               _isLoading = false;
             }
           });
+          ChatHistoryService.instance.saveMessage(errorMessage, modelName: model);
         }
       }
     } catch (e) {
       if (mounted && messageIndex < _messages.length) {
+        final errorMessage = ImageMessage.error(
+          prompt,
+          model,
+          'Error: $e',
+        );
         setState(() {
-          _messages[messageIndex] = ImageMessage.error(
-            prompt,
-            model,
-            'Error: $e',
-          );
+          _messages[messageIndex] = errorMessage;
           
           if (modelIndex == totalModels - 1) {
             _isLoading = false;
           }
         });
+        ChatHistoryService.instance.saveMessage(errorMessage, modelName: model);
       }
     }
   }
