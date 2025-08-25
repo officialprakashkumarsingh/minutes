@@ -1048,12 +1048,7 @@ class _ChatPageState extends State<ChatPage> {
         );
       }
       
-      // Close loading dialog after all models complete
-      if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      // Close loading dialog on error
-      if (mounted) Navigator.of(context).pop();
-      
       if (mounted) {
         _addMessage(Message.error(
           'Sorry, I encountered an error generating the image.',
