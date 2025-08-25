@@ -1405,8 +1405,6 @@ Format the response as:
     
     // Stream AI response
     String fullResponse = '';
-    final assistantMessage = ChartMessage.generating(prompt);
-    _addMessage(assistantMessage);
     
     try {
       // Get the selected model
@@ -1427,15 +1425,15 @@ Format the response as:
           // Try to extract chart config as we stream
           final config = ChartService.extractChartConfig(fullResponse);
           if (config.isNotEmpty && mounted) {
-            setState(() {
-              final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
-              if (index != -1) {
-                _messages[index] = (assistantMessage as ChartMessage).copyWith(
+            final index = _messages.indexWhere((m) => m.id == assistantMessage.id);
+            if (index != -1) {
+              setState(() {
+                _messages[index] = (_messages[index] as ChartMessage).copyWith(
                   chartConfig: config,
                   isStreaming: true,
                 );
-              }
-            });
+              });
+            }
           }
         },
         onDone: () {
